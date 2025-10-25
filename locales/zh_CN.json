@@ -121,10 +121,11 @@
     "nima_failed": "⚠️  NIMA 计算失败: {error}",
     "nima_timing_failed": "  ⏱️  [4/7] NIMA评分(失败): {time:.1f}ms",
     "brisque_score": "🔧 BRISQUE 技术质量: {score:.2f} / 100 (越低越好)",
-    "brisque_timing": "  ⏱️  [5/7] BRISQUE评分: {time:.1f}ms",
+    "brisque_timing": "  ⏱️  [6/7] BRISQUE评分: {time:.1f}ms",
     "brisque_failed": "⚠️  BRISQUE 计算失败: {error}",
-    "brisque_timing_failed": "  ⏱️  [5/7] BRISQUE评分(失败): {time:.1f}ms",
-    "sharpness_timing": "  ⏱️  [6/7] 锐度计算: {time:.1f}ms"
+    "brisque_timing_failed": "  ⏱️  [6/7] BRISQUE评分(失败): {time:.1f}ms",
+    "brisque_skipped": "⚡ BRISQUE 已跳过（锐度或美学达标，耗时: {time:.1f}ms）",
+    "sharpness_timing": "  ⏱️  [5/7] 锐度计算: {time:.1f}ms"
   },
   "stats": {
     "total": "总计",

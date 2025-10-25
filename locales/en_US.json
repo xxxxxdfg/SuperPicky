@@ -121,10 +121,11 @@
     "nima_failed": "⚠️  NIMA calculation failed: {error}",
     "nima_timing_failed": "  ⏱️  [4/7] NIMA Scoring(Failed): {time:.1f}ms",
     "brisque_score": "🔧 BRISQUE Technical Quality: {score:.2f} / 100 (lower is better)",
-    "brisque_timing": "  ⏱️  [5/7] BRISQUE Scoring: {time:.1f}ms",
+    "brisque_timing": "  ⏱️  [6/7] BRISQUE Scoring: {time:.1f}ms",
     "brisque_failed": "⚠️  BRISQUE calculation failed: {error}",
-    "brisque_timing_failed": "  ⏱️  [5/7] BRISQUE Scoring(Failed): {time:.1f}ms",
-    "sharpness_timing": "  ⏱️  [6/7] Sharpness Calculation: {time:.1f}ms"
+    "brisque_timing_failed": "  ⏱️  [6/7] BRISQUE Scoring(Failed): {time:.1f}ms",
+    "brisque_skipped": "⚡ BRISQUE skipped (sharpness or aesthetics qualified, time: {time:.1f}ms)",
+    "sharpness_timing": "  ⏱️  [5/7] Sharpness Calculation: {time:.1f}ms"
   },
   "stats": {
     "total": "Total",

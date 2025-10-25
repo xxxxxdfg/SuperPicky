@@ -275,30 +275,7 @@ def detect_and_draw_birds(image_path, model, output_path, dir, ui_settings, i18n
                 log_message(f"ERROR: Crop image is empty for {image_path}", dir)
                 continue
 
-            # Step 5: 计算 BRISQUE 技术质量评分（使用 crop 图片）
-            step_start = time.time()
-            try:
-                scorer = _get_iqa_scorer()
-                brisque_score = scorer.calculate_brisque(crop_img)
-                brisque_time = (time.time() - step_start) * 1000
-                if brisque_score is not None:
-                    if i18n:
-                        log_message(i18n.t("logs.brisque_score", score=brisque_score), dir)
-                        log_message(i18n.t("logs.brisque_timing", time=brisque_time), dir)
-                    else:
-                        log_message(f"🔧 BRISQUE 技术质量: {brisque_score:.2f} / 100 (越低越好)", dir)
-                        log_message(f"  ⏱️  [5/7] BRISQUE评分: {brisque_time:.1f}ms", dir)
-            except Exception as e:
-                brisque_time = (time.time() - step_start) * 1000
-                if i18n:
-                    log_message(i18n.t("logs.brisque_failed", error=str(e)), dir)
-                    log_message(i18n.t("logs.brisque_timing_failed", time=brisque_time), dir)
-                else:
-                    log_message(f"⚠️  BRISQUE 计算失败: {e}", dir)
-                    log_message(f"  ⏱️  [5/7] BRISQUE评分(失败): {brisque_time:.1f}ms", dir)
-                brisque_score = None
-
-            # Step 6: 使用新的基于掩码的锐度计算
+            # Step 5: 使用新的基于掩码的锐度计算（提前计算用于优化BRISQUE）
             step_start = time.time()
             mask_crop = None
             if masks is not None and idx < len(masks):
@@ -353,7 +330,43 @@ def detect_and_draw_birds(image_path, model, output_path, dir, ui_settings, i18n
             if i18n:
                 log_message(i18n.t("logs.sharpness_timing", time=sharpness_time), dir)
             else:
-                log_message(f"  ⏱️  [6/7] 锐度计算: {sharpness_time:.1f}ms", dir)
+                log_message(f"  ⏱️  [5/7] 锐度计算: {sharpness_time:.1f}ms", dir)
+
+            # Step 6: 计算 BRISQUE 技术质量评分（优化：锐度或美学达标则跳过）
+            # 优化策略：如果锐度 >= 阈值 或 NIMA >= 阈值，跳过BRISQUE计算以节省时间
+            # 因为这些照片很可能被评为2星或3星，BRISQUE不会影响最终评分
+            step_start = time.time()
+            skip_brisque = False
+            if sharpness >= sharpness_threshold or (nima_score is not None and nima_score >= nima_threshold):
+                skip_brisque = True
+                brisque_score = None
+                brisque_time = (time.time() - step_start) * 1000
+                if i18n:
+                    log_message(i18n.t("logs.brisque_skipped", time=brisque_time), dir)
+                else:
+                    log_message(f"⚡ BRISQUE 已跳过（锐度或美学达标，耗时: {brisque_time:.1f}ms）", dir)
+            else:
+                # 只对不达标的照片计算BRISQUE
+                try:
+                    scorer = _get_iqa_scorer()
+                    brisque_score = scorer.calculate_brisque(crop_img)
+                    brisque_time = (time.time() - step_start) * 1000
+                    if brisque_score is not None:
+                        if i18n:
+                            log_message(i18n.t("logs.brisque_score", score=brisque_score), dir)
+                            log_message(i18n.t("logs.brisque_timing", time=brisque_time), dir)
+                        else:
+                            log_message(f"🔧 BRISQUE 技术质量: {brisque_score:.2f} / 100 (越低越好)", dir)
+                            log_message(f"  ⏱️  [6/7] BRISQUE评分: {brisque_time:.1f}ms", dir)
+                except Exception as e:
+                    brisque_time = (time.time() - step_start) * 1000
+                    if i18n:
+                        log_message(i18n.t("logs.brisque_failed", error=str(e)), dir)
+                        log_message(i18n.t("logs.brisque_timing_failed", time=brisque_time), dir)
+                    else:
+                        log_message(f"⚠️  BRISQUE 计算失败: {e}", dir)
+                        log_message(f"  ⏱️  [6/7] BRISQUE评分(失败): {brisque_time:.1f}ms", dir)
+                    brisque_score = None
 
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
