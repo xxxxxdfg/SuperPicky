@@ -37,6 +37,14 @@ except ImportError:
     PIL_AVAILABLE = False
     print("提示: 需要安装 Pillow 才能显示图标 (pip install Pillow)")
 
+# V3.3: 文件夹名称映射（用于分类照片）
+RATING_FOLDER_NAMES = {
+    3: "3星_优选",
+    2: "2星_良好",
+    1: "1星_普通"
+}
+# 注意：0星和-1星（无鸟）照片保留原位，不移动
+
 
 class WorkerThread(threading.Thread):
     """处理线程"""
@@ -155,6 +163,9 @@ class WorkerThread(threading.Thread):
 
         # V3.1: 收集所有3星照片，用于后续计算精选旗标（美学+锐度双排名交集）
         star_3_photos = []  # [(raw_file_path, nima_score, sharpness), ...]
+
+        # V3.3: 收集每个文件的评分（用于后续移动到分类文件夹）
+        file_ratings = {}  # {文件名前缀: rating值}
 
         # 扫描文件
         scan_start = time.time()
@@ -435,6 +446,9 @@ class WorkerThread(threading.Thread):
                         'sharpness': sharpness
                     })
 
+                # V3.3: 记录文件评分（用于后续移动到分类文件夹）
+                file_ratings[file_prefix] = rating_value
+
         # V3.1: 计算精选旗标（3星照片中美学+锐度双排名交集）
         if len(star_3_photos) > 0:
             picked_start = time.time()
@@ -521,6 +535,9 @@ class WorkerThread(threading.Thread):
         else:
             self.log_callback(f"\n⏱️  AI检测总耗时: {self._format_time(ai_total_time_sec)} (平均 {avg_ai_time_sec:.1f}秒/张)")
 
+        # V3.3: 移动照片到分类文件夹
+        self._move_files_to_rating_folders(file_ratings, raw_dict)
+
         # V3.1: 清理临时JPG文件
         if self.i18n:
             self.log_callback(self.i18n.t("logs.cleaning_temp"))
@@ -555,6 +572,99 @@ class WorkerThread(threading.Thread):
         self.stats['avg_time'] = (self.stats['total_time'] / total_files) if total_files > 0 else 0
 
         # V3.1: 不在这里显示"处理完成"，而是在finished_callback中清屏后显示完整报告
+
+    def _move_files_to_rating_folders(self, file_ratings, raw_dict):
+        """
+        V3.3: 将1-3星照片移动到对应评分文件夹
+        
+        Args:
+            file_ratings: dict, {文件名前缀: rating值}
+            raw_dict: dict, {文件名前缀: RAW扩展名}
+        """
+        import shutil
+        import json
+        from datetime import datetime
+        
+        # 筛选需要移动的文件（1-3星）
+        files_to_move = []
+        for prefix, rating in file_ratings.items():
+            if rating in [1, 2, 3] and prefix in raw_dict:
+                raw_ext = raw_dict[prefix]
+                raw_path = os.path.join(self.dir_path, prefix + raw_ext)
+                if os.path.exists(raw_path):
+                    files_to_move.append({
+                        'filename': prefix + raw_ext,
+                        'rating': rating,
+                        'folder': RATING_FOLDER_NAMES[rating]
+                    })
+        
+        if not files_to_move:
+            if self.i18n:
+                self.log_callback("\n📂 无需移动文件（没有1-3星照片）")
+            else:
+                self.log_callback("\n📂 无需移动文件（没有1-3星照片）")
+            return
+        
+        if self.i18n:
+            self.log_callback(f"\n📂 移动 {len(files_to_move)} 张照片到分类文件夹...")
+        else:
+            self.log_callback(f"\n📂 移动 {len(files_to_move)} 张照片到分类文件夹...")
+        
+        # 创建分类文件夹（只创建有照片的文件夹）
+        ratings_in_use = set(f['rating'] for f in files_to_move)
+        for rating in ratings_in_use:
+            folder_name = RATING_FOLDER_NAMES[rating]
+            folder_path = os.path.join(self.dir_path, folder_name)
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+                self.log_callback(f"  📁 创建文件夹: {folder_name}/")
+        
+        # 移动文件
+        moved_count = 0
+        failed_files = []
+        
+        for file_info in files_to_move:
+            src_path = os.path.join(self.dir_path, file_info['filename'])
+            dst_folder = os.path.join(self.dir_path, file_info['folder'])
+            dst_path = os.path.join(dst_folder, file_info['filename'])
+            
+            try:
+                # 检查目标文件是否已存在
+                if os.path.exists(dst_path):
+                    self.log_callback(f"  ⚠️  跳过（已存在）: {file_info['filename']}")
+                    continue
+                    
+                shutil.move(src_path, dst_path)
+                moved_count += 1
+            except Exception as e:
+                failed_files.append(file_info['filename'])
+                self.log_callback(f"  ⚠️  移动失败: {file_info['filename']} - {e}")
+        
+        # 生成 manifest（用于Reset恢复）
+        manifest = {
+            "version": "1.0",
+            "created": datetime.now().isoformat(),
+            "app_version": "3.3.0",
+            "original_dir": self.dir_path,
+            "folder_structure": RATING_FOLDER_NAMES,
+            "files": files_to_move,
+            "stats": {
+                "total_moved": moved_count,
+                "failed": len(failed_files)
+            }
+        }
+        
+        manifest_path = os.path.join(self.dir_path, "_superpicky_manifest.json")
+        try:
+            with open(manifest_path, 'w', encoding='utf-8') as f:
+                json.dump(manifest, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self.log_callback(f"  ⚠️  保存manifest失败: {e}")
+        
+        # 输出统计
+        self.log_callback(f"  ✅ 已移动 {moved_count} 张照片")
+        if failed_files:
+            self.log_callback(f"  ⚠️  {len(failed_files)} 张移动失败")
 
 
 class AboutWindow:
@@ -997,6 +1107,14 @@ class SuperPickyApp:
             # 在后台线程执行重置操作,使用线程安全的日志回调
             def run_reset():
                 try:
+                    # V3.3: 先恢复文件位置（如果有 manifest）
+                    exiftool_mgr = get_exiftool_manager()
+                    restore_stats = exiftool_mgr.restore_files_from_manifest(
+                        self.directory_path, 
+                        log_callback=self.thread_safe_log
+                    )
+                    
+                    # 然后清除 EXIF 元数据（原有逻辑）
                     success = reset(self.directory_path, log_callback=self.thread_safe_log, i18n=self.i18n)
                     # 在主线程中处理完成后的UI更新
                     self.root.after(0, lambda: self._on_reset_complete(success))
@@ -1046,6 +1164,19 @@ class SuperPickyApp:
 
         if self.worker and self.worker.is_alive():
             messagebox.showwarning(self.i18n.t("messages.hint"), self.i18n.t("messages.processing"))
+            return
+
+        # V3.3: 处理前确认弹窗，告知用户文件将被移动
+        confirm_message = """处理完成后，照片将按评分移动到对应文件夹：
+
+• 3星优选 → 3星_优选/
+• 2星良好 → 2星_良好/
+• 1星普通 → 1星_普通/
+• 0星和无鸟照片保留原位
+
+如需恢复原始目录结构，可使用"重置目录"功能。"""
+        
+        if not messagebox.askyesno("文件整理提示", confirm_message):
             return
 
         # 清空日志和进度
