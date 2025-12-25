@@ -82,6 +82,15 @@ class PhotoProcessor:
         self.callbacks = callbacks or ProcessingCallbacks()
         self.config = get_advanced_config()
         
+        # DEBUG: 输出参数
+        self._log(f"\n🔍 DEBUG - 处理参数:")
+        self._log(f"  📊 AI置信度: {settings.ai_confidence}")
+        self._log(f"  📏 锐度阈值: {settings.sharpness_threshold}")
+        self._log(f"  🎨 NIMA阈值: {settings.nima_threshold}")
+        self._log(f"  🔧 归一化模式: {settings.normalization_mode}")
+        self._log(f"  ⚙️  高级配置 - min_sharpness: {self.config.min_sharpness}")
+        self._log(f"  ⚙️  高级配置 - min_nima: {self.config.min_nima}\n")
+        
         # 统计数据
         self.stats = {
             'total': 0,

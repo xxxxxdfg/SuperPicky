@@ -225,7 +225,7 @@ def cmd_process(args):
         return 1
     
     # 初始化处理器
-    ui_settings = [50, args.sharpness, args.nima, False, 'log']
+    ui_settings = [50, args.sharpness, args.nima, False, 'log_compression']
     processor = CLIProcessor(args.directory, ui_settings, verbose=True)
     
     # 执行处理
