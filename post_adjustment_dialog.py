@@ -8,10 +8,23 @@ SuperPicky V3.3 - Re-Star Dialog
 import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Dict, List, Set, Optional
+import os
+import shutil
+import json
+from datetime import datetime
 from post_adjustment_engine import PostAdjustmentEngine, safe_int, safe_float
 from exiftool_manager import get_exiftool_manager
 from advanced_config import get_advanced_config
 from i18n import get_i18n
+
+# V3.4: 文件夹名称映射
+RATING_FOLDER_NAMES = {
+    3: "3星_优选",
+    2: "2星_良好",
+    1: "1星_普通",
+    0: "0星_放弃",
+    -1: "0星_放弃"
+}
 
 
 class PostAdjustmentDialog:
@@ -639,7 +652,6 @@ class PostAdjustmentDialog:
                 stats = exiftool_mgr.batch_set_metadata(batch)
                 success_count += stats['success']
                 failed_count += stats['failed']
-            
             # CSV更新阶段
             self.progress_label.config(text="更新CSV报告...")
             self.window.update()
@@ -654,16 +666,110 @@ class PostAdjustmentDialog:
             else:
                 print(f"⚠️ {csv_msg}")
 
+            # V3.4: 文件重新分配阶段
+            self.progress_label.config(text="重新分配文件目录...")
+            self.window.update()
+            
+            moved_count = 0
+            move_failed = 0
+            files_moved = []  # 记录移动的文件用于更新manifest
+            
+            for photo in changed_photos:
+                filename = photo['filename']
+                new_rating = photo.get('新星级', 0)
+                old_rating = safe_int(photo.get('rating', '0'), 0)
+                
+                # 只有星级变化了才需要移动
+                if new_rating == old_rating:
+                    continue
+                
+                # 查找当前文件位置
+                file_path = self.engine.find_image_file(filename)
+                if not file_path:
+                    continue
+                
+                # 确定目标目录
+                target_folder = RATING_FOLDER_NAMES.get(new_rating, "0星_放弃")
+                target_dir = os.path.join(self.directory, target_folder)
+                
+                # 获取文件名（带扩展名）
+                actual_filename = os.path.basename(file_path)
+                target_path = os.path.join(target_dir, actual_filename)
+                
+                # 如果文件已经在目标目录，跳过
+                if os.path.dirname(file_path) == target_dir:
+                    continue
+                
+                try:
+                    # 确保目标目录存在
+                    if not os.path.exists(target_dir):
+                        os.makedirs(target_dir)
+                    
+                    # 移动文件
+                    if not os.path.exists(target_path):
+                        shutil.move(file_path, target_path)
+                        moved_count += 1
+                        files_moved.append({
+                            'filename': actual_filename,
+                            'folder': target_folder,
+                            'old_rating': old_rating,
+                            'new_rating': new_rating
+                        })
+                except Exception as e:
+                    print(f"⚠️ 移动失败 {filename}: {e}")
+                    move_failed += 1
+            
+            # 更新 manifest
+            if files_moved:
+                manifest_path = os.path.join(self.directory, ".superpicky_manifest.json")
+                try:
+                    # 读取现有 manifest
+                    if os.path.exists(manifest_path):
+                        with open(manifest_path, 'r', encoding='utf-8') as f:
+                            manifest = json.load(f)
+                    else:
+                        manifest = {
+                            "version": "1.0",
+                            "created": datetime.now().isoformat(),
+                            "app_version": "V3.4-ReRating",
+                            "original_dir": self.directory,
+                            "folder_structure": RATING_FOLDER_NAMES,
+                            "files": []
+                        }
+                    
+                    # 更新文件位置信息
+                    existing_files = {f['filename']: f for f in manifest.get('files', [])}
+                    for moved_file in files_moved:
+                        existing_files[moved_file['filename']] = {
+                            'filename': moved_file['filename'],
+                            'folder': moved_file['folder']
+                        }
+                    manifest['files'] = list(existing_files.values())
+                    manifest['last_rerating'] = datetime.now().isoformat()
+                    
+                    # 写入更新后的 manifest
+                    with open(manifest_path, 'w', encoding='utf-8') as f:
+                        json.dump(manifest, f, ensure_ascii=False, indent=2)
+                    print(f"✅ Manifest 已更新: {len(files_moved)} 个文件")
+                except Exception as e:
+                    print(f"⚠️ Manifest 更新失败: {e}")
+
             self.progress_label.config(text="✅ 完成!")
             self.window.update()
 
             self.progress_frame.pack_forget()
 
-            # 结果消息
+            # 结果消息 - V3.4: 添加移动统计
             if not_found_count > 0:
-                result_msg = f"✅ 成功: {success_count} 张\n❌ 失败: {failed_count} 张\n⏭️ 跳过(未找到): {not_found_count} 张"
+                result_msg = f"✅ EXIF更新: {success_count} 张\n❌ 失败: {failed_count} 张\n⏭️ 跳过(未找到): {not_found_count} 张"
             else:
-                result_msg = f"✅ 成功: {success_count} 张\n❌ 失败: {failed_count} 张"
+                result_msg = f"✅ EXIF更新: {success_count} 张\n❌ 失败: {failed_count} 张"
+            
+            # V3.4: 显示文件移动统计
+            if moved_count > 0:
+                result_msg += f"\n📁 目录重分配: {moved_count} 张"
+            if move_failed > 0:
+                result_msg += f"\n⚠️ 移动失败: {move_failed} 张"
             
             # Bug 5: 添加 Lightroom 提示
             result_msg += "\n\n💡 提示：如已导入Lightroom，请「从文件读取元数据」以同步新星级"
