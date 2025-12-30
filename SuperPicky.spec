@@ -1,15 +1,27 @@
-# -*- mode: python ; coding: utf-8 -*-
-
+import os
+import site
 from PyInstaller.utils.hooks import collect_data_files
 
 # 获取当前工作目录
 base_path = os.path.abspath('.')
 
+# 动态获取 site-packages 路径
+site_packages = site.getsitepackages()[0]
+user_site = site.getusersitepackages()
+
+# V3.6: 移除 pyiqa，使用独立 NIMA 实现
+# 处理 ultralytics
+if os.path.exists(os.path.join(user_site, 'ultralytics')):
+    ultralytics_base = user_site
+elif os.path.exists(os.path.join(site_packages, 'ultralytics')):
+    ultralytics_base = site_packages
+else:
+    ultralytics_base = '/Users/jameszhenyu/Library/Python/3.9/lib/python/site-packages'
+
 # 动态收集数据文件
 ultralytics_datas = collect_data_files('ultralytics')
-pyiqa_datas = collect_data_files('pyiqa')
 
-# 组合所有数据文件
+# 组合所有数据文件 (V3.6: 移除 pyiqa，添加独立 NIMA 权重)
 all_datas = [
     # AI模型文件
     (os.path.join(base_path, 'models/yolo11m-seg.pt'), 'models'),
@@ -17,6 +29,8 @@ all_datas = [
     (os.path.join(base_path, 'models/cub200_keypoint_resnet50.pth'), 'models'),
     # V3.5 新增：飞行姿态检测模型
     (os.path.join(base_path, 'models/superFlier_efficientnet.pth'), 'models'),
+    # V3.6 新增：独立 NIMA 权重文件
+    (os.path.join(base_path, 'models/NIMA_InceptionV2_ava-b0c77c00.pth'), 'models'),
 
     # ExifTool 完整打包
     (os.path.join(base_path, 'exiftool_bundle'), 'exiftool_bundle'),
@@ -26,10 +40,13 @@ all_datas = [
 
     # 国际化语言包
     (os.path.join(base_path, 'locales'), 'locales'),
+    
+    # Ultralytics 配置（手动添加完整 cfg 目录）
+    (os.path.join(ultralytics_base, 'ultralytics/cfg'), 'ultralytics/cfg'),
 ]
+
 # 添加动态收集的数据
 all_datas.extend(ultralytics_datas)
-all_datas.extend(pyiqa_datas)
 
 a = Analysis(
     ['main.py'],
@@ -51,26 +68,10 @@ a = Analysis(
         'matplotlib',
         'matplotlib.pyplot',
         'matplotlib.backends.backend_agg',
-        # PyIQA 隐藏导入（修复 FileNotFoundError）
-        'pyiqa',
-        'pyiqa.models',
-        'pyiqa.archs',
-        'pyiqa.data',
-        'pyiqa.utils',
-        'pyiqa.metrics',
-        'pyiqa.losses',
-        'pyiqa.matlab_utils',
-        # PyIQA 依赖库（V3.2.1新增）
-        'scipy',
-        'scipy.stats',
-        'scipy.special',
-        'scipy.optimize',
-        'scipy.linalg',
-        'scipy.io',
+        # V3.6: 独立 NIMA 依赖 timm
         'timm',
         'timm.models',
-        'timm.models.layers',
-        'einops',
+        'timm.models.inception_resnet_v2',
     ],
     hookspath=[],
     hooksconfig={},
@@ -121,8 +122,8 @@ app = BUNDLE(
         'NSHighResolutionCapable': 'True',
         'CFBundleName': 'SuperPicky',
         'CFBundleDisplayName': 'SuperPicky - 慧眼选鸟',
-        'CFBundleVersion': '3.5.0',
-        'CFBundleShortVersionString': '3.5.0',
+        'CFBundleVersion': '3.5.1',
+        'CFBundleShortVersionString': '3.5.1',
         'NSHumanReadableCopyright': 'Copyright © 2025 James Zhen Yu. All rights reserved.',
         'LSMinimumSystemVersion': '10.15',
         'NSRequiresAquaSystemAppearance': False,

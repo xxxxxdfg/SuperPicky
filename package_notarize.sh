@@ -1,5 +1,5 @@
 #!/bin/bash
-# SuperPicky V3.5.0 - 打包、签名和公证脚本
+# SuperPicky V3.5.1 - 打包、签名和公证脚本
 # 作者: James Zhen Yu
 # 日期: 2025-12-30
 
@@ -8,7 +8,7 @@ set -e  # 遇到错误立即退出
 # ============================================
 # 配置参数
 # ============================================
-VERSION="3.5.0"
+VERSION="3.5.1"
 APP_NAME="SuperPicky"
 BUNDLE_ID="com.jamesphotography.superpicky"
 DEVELOPER_ID="Developer ID Application: James Zhen Yu (JWR6FDB52H)"

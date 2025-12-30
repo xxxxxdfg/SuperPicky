@@ -23,7 +23,6 @@ find_bird_util.py
 run_batch.py
 config.py
 temp_file_manager.py
-iqa_scorer.py
 sharpness.py
 *.csv
 .DS_Store

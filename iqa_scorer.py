@@ -2,59 +2,52 @@
 # -*- coding: utf-8 -*-
 """
 IQA (Image Quality Assessment) 评分器
-使用 PyIQA 库实现 NIMA 和 BRISQUE 评分
+使用独立 NIMA 实现（替代 PyIQA）
+
+V3.6: 切换到独立 NIMA 实现，移除 pyiqa 依赖
 """
 
 import os
 import sys
-import shutil
 import torch
-import pyiqa
 from typing import Tuple, Optional
 import numpy as np
 from PIL import Image
 
+# 使用独立 NIMA 实现
+from nima_model import NIMA, load_nima_weights
 
-def setup_pyiqa_cache():
+
+def get_nima_weight_path():
     """
-    将打包的PyIQA模型复制到期望的缓存位置
-    这样可以避免首次运行时从网络下载模型（208MB+）
+    获取 NIMA 权重文件路径
+    
+    支持：
+    - PyInstaller 打包后的路径
+    - 开发环境的 models/ 目录
     """
-    from torch.hub import get_dir
-
-    cache_dir = os.path.join(get_dir(), 'pyiqa')
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # 获取打包的模型路径
+    weight_name = 'NIMA_InceptionV2_ava-b0c77c00.pth'
+    
+    # 查找顺序
+    search_paths = []
+    
     if hasattr(sys, '_MEIPASS'):
-        # PyInstaller打包后的路径
-        bundled_models = os.path.join(sys._MEIPASS, 'pyiqa_models')
-    else:
-        # 开发环境路径
-        bundled_models = os.path.join(os.path.dirname(__file__), 'temp_models', 'pyiqa')
-
-    models = [
-        'brisque_svm_weights.pth',
-        'NIMA_InceptionV2_ava-b0c77c00.pth'
-    ]
-
-    for model in models:
-        src = os.path.join(bundled_models, model)
-        dst = os.path.join(cache_dir, model)
-
-        if os.path.exists(src) and not os.path.exists(dst):
-            print(f"📥 复制PyIQA模型: {model} → {cache_dir}")
-            try:
-                shutil.copy2(src, dst)
-                print(f"✅ 模型复制成功: {model}")
-            except Exception as e:
-                print(f"⚠️  模型复制失败 {model}: {e}")
-                print(f"   将在首次运行时从网络下载")
-        elif os.path.exists(dst):
-            print(f"✅ PyIQA模型已存在: {model}")
-        else:
-            print(f"⚠️  打包的模型文件不存在: {src}")
-            print(f"   将在首次运行时从网络下载")
+        # PyInstaller 打包后的路径
+        search_paths.append(os.path.join(sys._MEIPASS, 'models', weight_name))
+    
+    # 开发环境路径
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    search_paths.append(os.path.join(base_dir, 'models', weight_name))
+    search_paths.append(os.path.join(base_dir, weight_name))
+    
+    for path in search_paths:
+        if os.path.exists(path):
+            return path
+    
+    raise FileNotFoundError(
+        f"NIMA 权重文件未找到。请确保 models/{weight_name} 存在。\n"
+        f"搜索路径: {search_paths}"
+    )
 
 
 class IQAScorer:
@@ -67,17 +60,14 @@ class IQAScorer:
         Args:
             device: 计算设备 ('mps', 'cuda', 'cpu')
         """
-        # 首先设置PyIQA模型缓存（避免网络下载）
-        setup_pyiqa_cache()
-
         self.device = self._get_device(device)
         print(f"🎨 IQA 评分器初始化中... (设备: {self.device})")
 
         # 延迟加载模型（第一次使用时才加载）
         self._nima_model = None
-        self._brisque_model = None
+        self._brisque_model = None  # BRISQUE 已弃用，保留接口兼容性
 
-        print("✅ IQA 评分器已就绪 (模型将在首次使用时加载)")
+        print("✅ IQA 评分器已就绪 (NIMA模型将在首次使用时加载)")
 
     def _get_device(self, preferred_device='mps'):
         """
@@ -105,25 +95,31 @@ class IQAScorer:
         return torch.device('cpu')
 
     def _load_nima(self):
-        """延迟加载 NIMA 模型"""
+        """延迟加载 NIMA 模型（使用独立实现）"""
         if self._nima_model is None:
-            print("📥 加载 NIMA 美学评分模型...")
+            print("📥 加载 NIMA 美学评分模型 (独立实现)...")
             try:
-                # PyIQA 的 NIMA 模型
-                self._nima_model = pyiqa.create_metric(
-                    'nima',
-                    device=self.device,
-                    as_loss=False
-                )
-                print("✅ NIMA 模型加载完成")
+                # 获取权重路径
+                weight_path = get_nima_weight_path()
+                
+                # 初始化独立 NIMA 模型
+                self._nima_model = NIMA()
+                load_nima_weights(self._nima_model, weight_path, self.device)
+                self._nima_model.to(self.device)
+                self._nima_model.eval()
+                print("✅ NIMA 模型加载完成 (独立实现)")
             except Exception as e:
                 print(f"⚠️  NIMA 模型加载失败: {e}")
                 print("   尝试使用 CPU 模式...")
-                self._nima_model = pyiqa.create_metric(
-                    'nima',
-                    device=torch.device('cpu'),
-                    as_loss=False
-                )
+                try:
+                    weight_path = get_nima_weight_path()
+                    self._nima_model = NIMA()
+                    load_nima_weights(self._nima_model, weight_path, torch.device('cpu'))
+                    self._nima_model.to(torch.device('cpu'))
+                    self._nima_model.eval()
+                    self.device = torch.device('cpu')
+                except Exception as e2:
+                    raise RuntimeError(f"NIMA 模型加载失败: {e2}")
         return self._nima_model
 
     def _load_brisque(self):
@@ -166,9 +162,15 @@ class IQAScorer:
             # 加载模型
             nima_model = self._load_nima()
 
+            # 加载图片并转为张量
+            import torchvision.transforms as T
+            img = Image.open(image_path).convert('RGB')
+            transform = T.ToTensor()
+            img_tensor = transform(img).unsqueeze(0).to(self.device)
+
             # 计算评分
             with torch.no_grad():
-                score = nima_model(image_path)
+                score = nima_model.predict_score(img_tensor)
 
             # 转换为 Python float
             if isinstance(score, torch.Tensor):

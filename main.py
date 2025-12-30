@@ -256,7 +256,7 @@ class AboutWindow:
         """填充关于窗口的内容"""
         content = """慧眼选鸟 (SuperPicky)
 
-版本: V3.4
+版本: V3.5.1
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -462,7 +462,7 @@ class SuperPickyApp:
         button_container = ttk.Frame(btn_frame)
         button_container.pack(side=tk.RIGHT)
 
-        ttk.Label(button_container, text="V3.4", font=("Arial", 9)).pack(side=tk.RIGHT, padx=10)
+        ttk.Label(button_container, text="V3.5.1", font=("Arial", 9)).pack(side=tk.RIGHT, padx=10)
 
         self.reset_btn = ttk.Button(button_container, text=self.i18n.t("buttons.reset"), command=self.reset_directory, width=15, state='disabled')
         self.reset_btn.pack(side=tk.RIGHT, padx=5)
