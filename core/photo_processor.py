@@ -115,6 +115,7 @@ class PhotoProcessor:
             'star_1': 0,  # 普通照片（合格）
             'star_0': 0,  # 普通照片（问题）
             'no_bird': 0,
+            'flying': 0,  # V3.6: 飞鸟照片计数
             'start_time': 0,
             'end_time': 0,
             'total_time': 0,
@@ -472,7 +473,7 @@ class PhotoProcessor:
             self._log_photo_result_simple(i, total_files, filename, rating_value, reason, photo_time_ms, is_flying)
             
             # 记录统计
-            self._update_stats(rating_value)
+            self._update_stats(rating_value, is_flying)
             
             # V3.4: 确定要处理的目标文件（RAW 优先，没有则用 JPEG）
             target_file_path = None
@@ -600,7 +601,7 @@ class PhotoProcessor:
         # 输出简化格式
         self._log(f"[{index:03d}/{total}] {filename} | {star_text} ({reason_short}) {flight_tag}| {time_text}")
     
-    def _update_stats(self, rating: int):
+    def _update_stats(self, rating: int, is_flying: bool = False):
         """更新统计数据"""
         self.stats['total'] += 1
         if rating == 3:
@@ -613,6 +614,10 @@ class PhotoProcessor:
             self.stats['star_0'] += 1  # 普通照片（问题）
         else:  # -1
             self.stats['no_bird'] += 1
+        
+        # V3.6: 统计飞鸟照片
+        if is_flying:
+            self.stats['flying'] += 1
     
     def _update_csv_keypoint_data(
         self, 

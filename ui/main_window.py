@@ -139,6 +139,11 @@ class WorkerThread(threading.Thread):
 class SuperPickyMainWindow(QMainWindow):
     """SuperPicky 主窗口"""
     
+    # V3.6: 重置操作的信号（用于线程安全的 UI 更新）
+    reset_log_signal = Signal(str)
+    reset_complete_signal = Signal(bool, dict, dict)  # success, restore_stats, exif_stats
+    reset_error_signal = Signal(str)
+    
     def __init__(self):
         super().__init__()
         
@@ -156,6 +161,11 @@ class SuperPickyMainWindow(QMainWindow):
         self._setup_menu()
         self._setup_ui()
         self._show_initial_help()
+        
+        # 连接重置信号
+        self.reset_log_signal.connect(self._log)
+        self.reset_complete_signal.connect(self._on_reset_complete)
+        self.reset_error_signal.connect(self._on_reset_error)
     
     def _setup_window(self):
         """设置窗口属性"""
@@ -608,43 +618,83 @@ class SuperPickyMainWindow(QMainWindow):
         self._log(self.i18n.t("logs.separator"))
         self._log(self.i18n.t("logs.reset_start"))
         
+        # 保存引用以便在线程中使用
+        directory_path = self.directory_path
+        i18n = self.i18n
+        log_signal = self.reset_log_signal
+        complete_signal = self.reset_complete_signal
+        error_signal = self.reset_error_signal
+        
         def run_reset():
+            restore_stats = {'restored': 0, 'failed': 0}
+            exif_stats = {'success': 0, 'failed': 0}
+            
+            # 线程安全的日志函数
+            def emit_log(msg):
+                log_signal.emit(msg)
+            
             try:
                 from exiftool_manager import get_exiftool_manager
                 from find_bird_util import reset
                 
                 exiftool_mgr = get_exiftool_manager()
+                
+                # 步骤1: 恢复文件到主目录（从分类文件夹移回）
+                emit_log("📂 步骤1: 恢复文件到主目录...")
                 restore_stats = exiftool_mgr.restore_files_from_manifest(
-                    self.directory_path
+                    directory_path, log_callback=emit_log
                 )
                 
-                success = reset(self.directory_path, i18n=self.i18n)
+                restored_count = restore_stats.get('restored', 0)
+                if restored_count > 0:
+                    emit_log(f"  ✅ 已恢复 {restored_count} 个文件")
+                else:
+                    emit_log("  ℹ️  无需恢复文件")
                 
-                # 使用 QTimer 在主线程中更新 UI
-                QTimer.singleShot(0, lambda: self._on_reset_complete(success, restore_stats))
+                # 步骤2: 调用 reset 函数清理临时文件和重置 EXIF
+                # 注意: reset() 内部会处理 EXIF 重置和临时文件清理
+                emit_log("\n📝 步骤2: 清理并重置 EXIF 元数据...")
+                emit_log("  ⏳ 正在处理，请稍候...")
+                success = reset(directory_path, i18n=i18n)
+                
+                emit_log("\n✅ 重置流程完成!")
+                
+                # 使用信号在主线程中更新 UI
+                complete_signal.emit(success, restore_stats, exif_stats)
+                
             except Exception as e:
-                QTimer.singleShot(0, lambda: self._on_reset_error(str(e)))
+                import traceback
+                error_msg = str(e)
+                emit_log(f"\n❌ 重置出错: {error_msg}")
+                traceback.print_exc()
+                error_signal.emit(error_msg)
         
         threading.Thread(target=run_reset, daemon=True).start()
     
-    def _on_reset_complete(self, success, restore_stats=None):
+    def _on_reset_complete(self, success, restore_stats=None, exif_stats=None):
         """重置完成"""
         if success:
             self._log(self.i18n.t("logs.reset_complete"))
             
+            # 构建详细统计消息
+            msg_parts = ["✅ 目录重置完成！\n"]
+            
             if restore_stats:
                 restored = restore_stats.get('restored', 0)
                 if restored > 0:
-                    QMessageBox.information(
-                        self,
-                        "重置完成",
-                        f"✅ 已成功恢复 {restored} 张照片到主目录"
-                    )
+                    msg_parts.append(f"📂 恢复文件: {restored} 张")
+            
+            if exif_stats:
+                exif_success = exif_stats.get('success', 0)
+                if exif_success > 0:
+                    msg_parts.append(f"📝 EXIF重置: {exif_success} 张")
+            
+            msg_parts.append("\n💡 现在可以重新进行评星处理")
             
             QMessageBox.information(
                 self,
                 self.i18n.t("messages.reset_complete_title"),
-                self.i18n.t("messages.reset_complete")
+                "\n".join(msg_parts)
             )
         else:
             self._log(self.i18n.t("logs.reset_failed"))
@@ -690,7 +740,8 @@ class SuperPickyMainWindow(QMainWindow):
             self.directory_path,
             current_sharpness=self.sharp_slider.value(),
             current_nima=self.nima_slider.value() / 10.0,
-            on_complete_callback=self._on_post_adjustment_complete
+            on_complete_callback=self._on_post_adjustment_complete,
+            log_callback=self._log
         )
         dialog.exec()
     
@@ -754,6 +805,8 @@ class SuperPickyMainWindow(QMainWindow):
 
 📊 {self.i18n.t("help.rating_rules_title")}
   • {self.i18n.t("help.rule_3_star")}
+  • {self.i18n.t("help.rule_picked")}
+  • {self.i18n.t("help.rule_flying")}
   • {self.i18n.t("help.rule_2_star")}
   • {self.i18n.t("help.rule_1_star")}
   • {self.i18n.t("help.rule_0_star")}
@@ -774,6 +827,7 @@ class SuperPickyMainWindow(QMainWindow):
         total_time = stats.get('total_time', 0)
         avg_time = stats.get('avg_time', 0)
         picked = stats.get('picked', 0)
+        flying = stats.get('flying', 0)  # V3.6: 飞鸟数量
         
         bird_total = star_3 + star_2 + star_1 + star_0
         
@@ -794,6 +848,10 @@ class SuperPickyMainWindow(QMainWindow):
                 report += self.i18n.t('report.star_0', count=star_0, percent=star_0/total*100) + "\n"
             report += f"❌ {self.i18n.t('report.no_bird', count=no_bird, percent=no_bird/total*100)}\n\n"
             report += self.i18n.t('report.bird_total', count=bird_total, percent=bird_total/total*100) + "\n"
+            
+            # V3.6: 显示飞鸟数量（绿标）
+            if flying > 0:
+                report += f"🦅 飞鸟照片: {flying} 张（已标记绿色标签）\n"
         
         report += "=" * 50 + "\n"
         return report

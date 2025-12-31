@@ -31,9 +31,11 @@ class PostAdjustmentDialog(QDialog):
     
     # 信号
     progress_updated = Signal(str)
+    main_window_log = Signal(str)  # V3.6: 主窗口日志信号
+    apply_complete = Signal(str)  # V3.6: 应用完成信号（携带结果消息）
     
     def __init__(self, parent, directory: str, current_sharpness: int = 500,
-                 current_nima: float = 5.0, on_complete_callback=None):
+                 current_nima: float = 5.0, on_complete_callback=None, log_callback=None):
         super().__init__(parent)
         
         self.config = get_advanced_config()
@@ -41,6 +43,11 @@ class PostAdjustmentDialog(QDialog):
         
         self.directory = directory
         self.on_complete_callback = on_complete_callback
+        self.log_callback = log_callback  # 日志回调到主窗口
+        
+        # 连接主窗口日志信号
+        if log_callback:
+            self.main_window_log.connect(log_callback)
         
         # 初始化引擎
         self.engine = PostAdjustmentEngine(directory)
@@ -67,6 +74,9 @@ class PostAdjustmentDialog(QDialog):
         
         # 信号连接
         self.progress_updated.connect(self._update_progress_label)
+        
+        # 连接应用完成信号
+        self.apply_complete.connect(self._on_apply_complete)
         
         self._setup_ui()
         self._load_data()
@@ -495,6 +505,14 @@ class PostAdjustmentDialog(QDialog):
         batch_data = []
         not_found = 0
         
+        # 内部日志方法（同时更新进度标签和主窗口日志）
+        def log(msg):
+            self.progress_updated.emit(msg)
+            self.main_window_log.emit(msg)  # 使用信号替代 QTimer.singleShot
+        
+        log("━" * 40)
+        log(f"🔄 开始重新评星 (共 {total} 张需更新)...")
+        
         # 准备数据
         for i, photo in enumerate(changed_photos):
             filename = photo['filename']
@@ -515,11 +533,12 @@ class PostAdjustmentDialog(QDialog):
                 self.progress_updated.emit(f"查找文件 {i+1}/{total}")
         
         if not batch_data:
-            self.progress_updated.emit(f"❌ 未找到文件")
+            log(f"❌ 未找到文件")
             QTimer.singleShot(0, lambda: self.apply_btn.setEnabled(True))
             return
         
         # EXIF 写入
+        log(f"📝 写入 EXIF 元数据 ({len(batch_data)} 张)...")
         exiftool_mgr = get_exiftool_manager()
         total_files = len(batch_data)
         batch_size = 20
@@ -535,14 +554,16 @@ class PostAdjustmentDialog(QDialog):
             success_count += stats['success']
             failed_count += stats['failed']
         
+        log(f"  ✅ EXIF 写入: {success_count} 成功, {failed_count} 失败")
+        
         # 更新 CSV
-        self.progress_updated.emit("更新CSV报告...")
+        log("📊 更新 CSV 报告...")
         csv_success, csv_msg = self.engine.update_report_csv(
             changed_photos, self.picked_files
         )
         
         # 文件重分配
-        self.progress_updated.emit("重新分配文件目录...")
+        log("📂 重新分配文件目录...")
         moved_count = 0
         
         for photo in changed_photos:
@@ -574,22 +595,30 @@ class PostAdjustmentDialog(QDialog):
             except Exception:
                 pass
         
+        if moved_count > 0:
+            log(f"  📁 目录重分配: {moved_count} 张")
+        
+        log("✅ 重新评星完成!")
+        log("━" * 40)
         self.progress_updated.emit("✅ 完成!")
         
-        # 显示结果（在主线程）
+        # 构建结果消息并通过信号发送
         result_msg = f"✅ EXIF更新: {success_count} 张\n❌ 失败: {failed_count} 张"
         if moved_count > 0:
             result_msg += f"\n📁 目录重分配: {moved_count} 张"
         result_msg += "\n\n💡 提示：如已导入Lightroom，请「从文件读取元数据」以同步新星级"
         
-        def show_result():
-            QMessageBox.information(
-                self,
-                self.i18n.t("post_adjustment.apply_success_title"),
-                result_msg
-            )
-            if self.on_complete_callback:
-                self.on_complete_callback()
-            self.accept()
-        
-        QTimer.singleShot(0, show_result)
+        # 使用信号在主线程显示结果
+        self.apply_complete.emit(result_msg)
+    
+    @Slot(str)
+    def _on_apply_complete(self, result_msg: str):
+        """应用完成后显示结果弹窗（在主线程执行）"""
+        QMessageBox.information(
+            self,
+            self.i18n.t("post_adjustment.apply_success_title"),
+            result_msg
+        )
+        if self.on_complete_callback:
+            self.on_complete_callback()
+        self.accept()
