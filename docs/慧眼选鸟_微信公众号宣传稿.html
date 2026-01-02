@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慧眼选鸟 - 微信公众号宣传稿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 0 60px rgba(0,0,0,0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 60px 30px;
+            text-align: center;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-30px, -30px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .hero .tagline {
+            font-size: 20px;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .hero .subtitle {
+            margin-top: 20px;
+            font-size: 15px;
+            opacity: 0.85;
+            background: rgba(255,255,255,0.15);
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+        }
+
+        /* Content Sections */
+        .content {
+            padding: 0;
+        }
+
+        .section {
+            padding: 40px 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-alt {
+            background: linear-gradient(180deg, #f8f9ff 0%, #fff 100%);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Pain Points */
+        .pain-points {
+            padding: 40px 30px;
+            background: #fff;
+        }
+
+        .pain-point {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+            border-left: 4px solid #e74c3c;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .pain-point .icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .pain-point p {
+            font-size: 16px;
+            color: #555;
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f5f7ff 0%, #fff 100%);
+            border: 1px solid #e8ecff;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102,126,234,0.15);
+        }
+
+        .feature-card .icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .feature-card h4 {
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        /* Rating Table */
+        .rating-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .rating-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 15px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .rating-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .rating-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rating-table tr:nth-child(even) {
+            background: #f8f9ff;
+        }
+
+        .stars {
+            font-size: 18px;
+            color: #f39c12;
+            letter-spacing: 2px;
+        }
+
+        .stars.dim {
+            color: #ddd;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-gold {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #7c4a03;
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #0a5f38;
+        }
+
+        .badge-gray {
+            background: #e9ecef;
+            color: #666;
+        }
+
+        /* Special Tags */
+        .tag-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tag-item {
+            display: flex;
+            gap: 15px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            border: 1px solid #eee;
+        }
+
+        .tag-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .tag-icon.pick {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: #7c4a03;
+        }
+
+        .tag-icon.fly {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #0a5f38;
+        }
+
+        .tag-icon.exposure {
+            background: linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%);
+            color: #fff;
+        }
+
+        .tag-content h4 {
+            font-size: 16px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .tag-content p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Folder Structure */
+        .folder-box {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 25px;
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 14px;
+            color: #a8d4ff;
+            line-height: 2;
+        }
+
+        .folder-box .folder {
+            color: #ffd93d;
+        }
+
+        .folder-box .comment {
+            color: #888;
+        }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .step {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+            padding-top: 8px;
+        }
+
+        .step-content h4 {
+            font-size: 17px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .step-content p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Requirements */
+        .req-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .req-card {
+            background: linear-gradient(135deg, #f5f7ff 0%, #fff 100%);
+            border: 1px solid #e8ecff;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .req-card h4 {
+            font-size: 16px;
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .req-card ul {
+            list-style: none;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .req-card li {
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .req-card li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+        }
+
+        /* Download Section */
+        .download-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .download-section h3 {
+            font-size: 24px;
+            margin-bottom: 25px;
+        }
+
+        .download-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .download-group {
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .download-group h4 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: #fff;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 5px;
+            transition: transform 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .download-btn.secondary {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        /* Eye Section */
+        .eye-section {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .eye-section h4 {
+            font-size: 18px;
+            color: #7c4a03;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .eye-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .eye-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.6);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .eye-item .result {
+            margin-left: auto;
+            font-weight: 600;
+            color: #7c4a03;
+        }
+
+        /* Team Section */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .team-card {
+            text-align: center;
+            padding: 20px 15px;
+            background: linear-gradient(135deg, #f5f7ff 0%, #fff 100%);
+            border-radius: 16px;
+            border: 1px solid #e8ecff;
+        }
+
+        .team-card .role {
+            font-size: 12px;
+            color: #667eea;
+            margin-bottom: 6px;
+        }
+
+        .team-card .name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 4px;
+        }
+
+        .team-card .desc {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* FAQ */
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .faq-item {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .faq-item .q {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .faq-item .q::before {
+            content: '问';
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .faq-item .a {
+            font-size: 14px;
+            color: #666;
+            padding-left: 32px;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .footer-slogan {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #ffd93d, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-tagline {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 25px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: #a8d4ff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-copyright {
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        /* Intro Text */
+        .intro-text {
+            font-size: 16px;
+            color: #555;
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Lightroom List */
+        .lr-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .lr-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, #f5f7ff 0%, #fff 100%);
+            border-radius: 10px;
+            border: 1px solid #e8ecff;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .lr-item .check {
+            color: #27ae60;
+            font-weight: 700;
+        }
+
+        .note-box {
+            background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+            border-left: 4px solid #27ae60;
+            padding: 15px 20px;
+            border-radius: 0 12px 12px 0;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero">
+            <div class="hero-content">
+                <h1>慧眼选鸟</h1>
+                <div class="tagline">让AI帮你挑选最美鸟照</div>
+                <div class="subtitle">完全免费 · macOS & Windows 双平台</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Pain Points -->
+            <div class="pain-points">
+                <p class="intro-text">亲爱的鸟友们，您是否也有这样的烦恼？</p>
+                <div class="pain-point">
+                    <span class="icon">📷</span>
+                    <p>每次外拍归来，面对<strong>成千上万张照片</strong>，不知从何选起？</p>
+                </div>
+                <div class="pain-point">
+                    <span class="icon">👀</span>
+                    <p>眼睛看花了，<strong>一张张筛选太累人</strong>？</p>
+                </div>
+                <div class="pain-point">
+                    <span class="icon">⏰</span>
+                    <p>宝贵的拍摄时间都<strong>浪费在选片上</strong>？</p>
+                </div>
+                <p class="intro-text" style="margin-top: 30px; margin-bottom: 0;">
+                    现在，有一款专为鸟类摄影师打造的<span class="highlight">免费AI选片神器</span>！
+                </p>
+            </div>
+
+            <!-- AI Models -->
+            <div class="section section-alt">
+                <h3 class="section-title"><span class="num">1</span>四大AI模型协同工作</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">🎯</div>
+                        <h4>YOLO11 检测</h4>
+                        <p>精准识别鸟类位置</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">👁️</div>
+                        <h4>SuperEyes 鸟眼</h4>
+                        <p>检测眼睛可见度</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🦅</div>
+                        <h4>SuperFlier 飞鸟</h4>
+                        <p>识别飞行姿态加分</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🎨</div>
+                        <h4>TOPIQ 美学</h4>
+                        <p>评估构图与美感</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating System -->
+            <div class="section">
+                <h3 class="section-title"><span class="num">2</span>智能0-3星评分系统</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">根据<strong>头部锐度</strong>和<strong>美学评分</strong>自动评定星级：</p>
+                <table class="rating-table">
+                    <thead>
+                        <tr>
+                            <th>星级</th>
+                            <th>评判标准</th>
+                            <th>建议</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="stars">★★★</span></td>
+                            <td>锐度+美学双达标</td>
+                            <td><span class="badge badge-gold">精品</span> 值得精修</td>
+                        </tr>
+                        <tr>
+                            <td><span class="stars">★★<span class="dim">★</span></span></td>
+                            <td>锐度或美学达标其一</td>
+                            <td><span class="badge badge-green">不错</span> 可考虑保留</td>
+                        </tr>
+                        <tr>
+                            <td><span class="stars">★<span class="dim">★★</span></span></td>
+                            <td>有鸟但都未达标</td>
+                            <td><span class="badge badge-gray">一般</span> 可以删除</td>
+                        </tr>
+                        <tr>
+                            <td><span class="stars dim">0</span></td>
+                            <td>无鸟或质量太差</td>
+                            <td><span class="badge badge-gray">淘汰</span> 建议删除</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Special Tags -->
+            <div class="section section-alt">
+                <h3 class="section-title"><span class="num">3</span>三大特殊标记</h3>
+                <div class="tag-list">
+                    <div class="tag-item">
+                        <div class="tag-icon pick">P</div>
+                        <div class="tag-content">
+                            <h4>Pick 精选标记</h4>
+                            <p>从三星照片中选出锐度和美学<strong>双排名前25%</strong>的交集——这些就是这批照片的精华！</p>
+                        </div>
+                    </div>
+                    <div class="tag-item">
+                        <div class="tag-icon fly">F</div>
+                        <div class="tag-content">
+                            <h4>飞鸟绿标</h4>
+                            <p>AI识别到飞行姿态的照片用绿色标签标记，并获得额外加分。飞版难拍，理应获得更多认可！</p>
+                        </div>
+                    </div>
+                    <div class="tag-item">
+                        <div class="tag-icon exposure">E</div>
+                        <div class="tag-content">
+                            <h4>曝光检测（可选）</h4>
+                            <p>可开启曝光问题检测，过曝或欠曝的照片会自动降星。默认关闭，需手动开启。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto Organize -->
+            <div class="section">
+                <h3 class="section-title"><span class="num">4</span>自动整理分类</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">处理完成后，照片自动按星级分类到不同文件夹：</p>
+                <div class="folder-box">
+                    <span class="folder">📁 您的照片文件夹/</span><br>
+                    &nbsp;&nbsp;├── <span class="folder">3_stars/</span> <span class="comment">← 三星精品</span><br>
+                    &nbsp;&nbsp;├── <span class="folder">2_stars/</span> <span class="comment">← 二星良品</span><br>
+                    &nbsp;&nbsp;├── <span class="folder">1_stars/</span> <span class="comment">← 一星普通</span><br>
+                    &nbsp;&nbsp;└── <span class="folder">0_stars/</span> <span class="comment">← 零星淘汰</span>
+                </div>
+            </div>
+
+            <!-- Lightroom -->
+            <div class="section section-alt">
+                <h3 class="section-title"><span class="num">5</span>与Lightroom完美配合</h3>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;"><strong>评分信息直接写入RAW文件！</strong>导入Lightroom后：</p>
+                <div class="lr-list">
+                    <div class="lr-item"><span class="check">✓</span> 按星级筛选照片</div>
+                    <div class="lr-item"><span class="check">✓</span> 看到Pick精选旗标</div>
+                    <div class="lr-item"><span class="check">✓</span> 绿标找到飞版</div>
+                    <div class="lr-item"><span class="check">✓</span> 按锐度/美学排序</div>
+                </div>
+                <div class="note-box">
+                    <strong>放心使用：</strong>不改变原片画质，评分可随时一键重置！
+                </div>
+            </div>
+
+            <!-- How to Use -->
+            <div class="section">
+                <h3 class="section-title"><span class="num">6</span>使用方法（超简单！）</h3>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <h4>选择文件夹</h4>
+                            <p>将照片文件夹拖入软件，或点击"浏览"选择</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <h4>调整参数（可选）</h4>
+                            <p>锐度阈值200-600，美学阈值4.0-7.0</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <h4>开始处理</h4>
+                            <p>点击按钮，等待AI完成分析</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">4</div>
+                        <div class="step-content">
+                            <h4>查看结果</h4>
+                            <p>照片自动分类，导入Lightroom使用</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eye Visibility -->
+            <div class="section section-alt">
+                <h3 class="section-title"><span class="num">7</span>为什么眼睛这么重要？</h3>
+                <div class="eye-section">
+                    <h4>眼睛是鸟类摄影的灵魂！</h4>
+                    <div class="eye-list">
+                        <div class="eye-item">
+                            <span>👁️ 眼睛清晰可见</span>
+                            <span class="result">→ 正常评分</span>
+                        </div>
+                        <div class="eye-item">
+                            <span>👁️ 眼睛略微模糊</span>
+                            <span class="result">→ 最高2星</span>
+                        </div>
+                        <div class="eye-item">
+                            <span>👁️ 眼睛完全不可见</span>
+                            <span class="result">→ 最高1星</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requirements -->
+            <div class="section">
+                <h3 class="section-title"><span class="num">8</span>系统要求</h3>
+                <div class="req-grid">
+                    <div class="req-card">
+                        <h4>🍎 macOS 苹果电脑</h4>
+                        <ul>
+                            <li>macOS 10.15 或更高</li>
+                            <li>Apple Silicon (M1/M2/M3/M4)</li>
+                            <li>1.5GB 存储空间</li>
+                        </ul>
+                    </div>
+                    <div class="req-card">
+                        <h4>🪟 Windows 电脑</h4>
+                        <ul>
+                            <li>Windows 10 或更高</li>
+                            <li>NVIDIA GPU（推荐）</li>
+                            <li>2GB 存储空间</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download -->
+            <div class="download-section">
+                <h3>立即免费下载</h3>
+                <div class="download-buttons">
+                    <div class="download-group">
+                        <h4>macOS版本</h4>
+                        <a href="https://github.com/jamesphotography/SuperPicky/releases/latest" class="download-btn">GitHub下载</a>
+                        <a href="https://drive.google.com/file/d/1AjuEO9SZxpXdnO08F4Qe0kpqX64a-LsU/view" class="download-btn secondary">Google Drive</a>
+                    </div>
+                    <div class="download-group">
+                        <h4>Windows版本</h4>
+                        <a href="https://drive.google.com/file/d/1rn_VctgLMW8SOAAfm3I1tGX7W_RCcBgm/view" class="download-btn">Google Drive下载</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team -->
+            <div class="section">
+                <h3 class="section-title"><span class="num">9</span>开发团队</h3>
+                <div class="team-grid">
+                    <div class="team-card">
+                        <div class="role">开发者</div>
+                        <div class="name">詹姆斯·于震</div>
+                        <div class="desc">澳籍华裔职业摄影师</div>
+                    </div>
+                    <div class="team-card">
+                        <div class="role">模型训练</div>
+                        <div class="name">于若君</div>
+                        <div class="desc">SuperEyes · SuperFlier</div>
+                    </div>
+                    <div class="team-card">
+                        <div class="role">Windows版</div>
+                        <div class="name">小平</div>
+                        <div class="desc">Windows平台移植</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ -->
+            <div class="section section-alt">
+                <h3 class="section-title"><span class="num">10</span>常见问题</h3>
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <div class="q">软件收费吗？</div>
+                        <div class="a">完全免费！开源软件，不收取任何费用。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">会损坏我的原片吗？</div>
+                        <div class="a">不会！软件只写入评分信息到EXIF，不修改原片画质。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">评星不满意怎么办？</div>
+                        <div class="a">可以一键重置，恢复到处理前的状态。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">处理速度快吗？</div>
+                        <div class="a">苹果M系列芯片可充分发挥AI加速，处理速度很快。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-slogan">拍片一时爽，选片照样爽！</div>
+            <div class="footer-tagline">让慧眼选鸟成为您鸟类摄影的得力助手</div>
+            <div class="footer-links">
+                <a href="https://github.com/jamesphotography/SuperPicky">GitHub</a>
+                <a href="https://www.youtube.com/@JamesZhenYu">YouTube</a>
+                <a href="mailto:james@jamesphotography.com.au">联系我们</a>
+            </div>
+            <div class="footer-copyright">
+                v3.8.0 | © 2024-2025 James Yu · jamesphotography.com.au
+            </div>
+        </div>
+    </div>
+</body>
+</html>

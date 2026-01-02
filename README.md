@@ -49,7 +49,7 @@
 ## 📥 下载安装
 
 ### macOS
-1. 从 [Releases](https://github.com/jamesphotography/SuperPicky/releases/latest) 页面下载 `SuperPicky_vX.X.X.dmg`
+1. 从 [Releases](https://github.com/jamesphotography/SuperPicky/releases/latest) 或 [Google Drive](https://drive.google.com/file/d/1AjuEO9SZxpXdnO08F4Qe0kpqX64a-LsU/view?usp=sharing) 下载 `SuperPicky_vX.X.X.dmg`
 2. 双击 DMG 文件，将应用拖入 Applications
 3. 首次打开：右键点击应用选择"打开"
 
