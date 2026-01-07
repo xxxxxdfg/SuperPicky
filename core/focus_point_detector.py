@@ -47,8 +47,10 @@ class FocusPointDetector:
     对焦点检测器
     
     支持相机:
-    - Nikon Z8/Z9 (NEF)
-    - Sony A1/A7R5/A7M4/A9 (ARW)
+    - Nikon Z8/Z9 (NEF) ✅
+    - Sony A1/A7R5/A7M4/A9 (ARW) ✅
+    - Canon R1/R3/R5/R6 (CR3) - 待验证
+    - Olympus/OM System OM-1 (ORF) - 待验证
     """
     
     # 通用标签 + 各品牌特有标签
@@ -72,6 +74,26 @@ class FocusPointDetector:
         'FocusFrameSize',
     ]
     
+    # Canon: 需要 CR3 样片验证
+    CANON_TAGS = [
+        'AFAreaMode',
+        'PrimaryAFPoint',
+        'AFPointSelected',
+        'AFAreaXPositions',
+        'AFAreaYPositions',
+        'AFImageWidth',
+        'AFImageHeight',
+    ]
+    
+    # Olympus/OM System: 需要 ORF 样片验证
+    OLYMPUS_TAGS = [
+        'AFPoint',
+        'AFAreaMode',
+        'FocusDistance',
+        'ImageWidth',
+        'ImageHeight',
+    ]
+    
     def __init__(self, exiftool_path: str = 'exiftool'):
         """
         初始化检测器
@@ -86,7 +108,7 @@ class FocusPointDetector:
         检测对焦点
         
         Args:
-            raw_path: RAW 文件路径 (NEF/ARW)
+            raw_path: RAW 文件路径 (NEF/ARW/CR3/ORF)
             
         Returns:
             FocusPointResult 或 None (无对焦数据)
@@ -103,6 +125,12 @@ class FocusPointDetector:
             return self._detect_nikon(raw_path, exif_data)
         elif 'SONY' in make:
             return self._detect_sony(raw_path, exif_data)
+        elif 'CANON' in make:
+            # TODO: 需要 Canon CR3 样片验证
+            return self._detect_canon(raw_path, exif_data)
+        elif 'OLYMPUS' in make or 'OM DIGITAL' in make:
+            # TODO: 需要 Olympus/OM System ORF 样片验证
+            return self._detect_olympus(raw_path, exif_data)
         else:
             return None  # 不支持的相机品牌
     
@@ -232,6 +260,26 @@ class FocusPointDetector:
             focus_result=1,  # 假设 AF 模式下合焦
             is_valid=True
         )
+    
+    def _detect_canon(self, raw_path: str, common_data: dict) -> Optional[FocusPointResult]:
+        """
+        Canon R1/R3/R5/R6 对焦点检测
+        
+        TODO: 需要 Canon CR3 样片验证 EXIF 标签格式
+        可能的标签: AFAreaXPositions, AFAreaYPositions, PrimaryAFPoint
+        """
+        # 暂时返回 None，等待样片验证
+        return None
+    
+    def _detect_olympus(self, raw_path: str, common_data: dict) -> Optional[FocusPointResult]:
+        """
+        Olympus/OM System OM-1 对焦点检测
+        
+        TODO: 需要 ORF 样片验证 EXIF 标签格式
+        可能的标签: AFPoint
+        """
+        # 暂时返回 None，等待样片验证
+        return None
     
     def _read_exif(self, file_path: str, tags: list) -> Optional[dict]:
         """读取指定的 EXIF 标签"""
