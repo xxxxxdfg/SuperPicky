@@ -186,7 +186,8 @@ class ExifToolManager:
 
         # ExifTool批量模式：使用 -execute 分隔符为每个文件单独设置参数
         # 格式: exiftool -TAG1=value1 file1 -overwrite_original -execute -TAG2=value2 file2 -overwrite_original -execute ...
-        cmd = [self.exiftool_path]
+        # V3.9: 添加 -charset iptc=utf8 支持中文编码（如对焦状态"精准"/"脱焦"等）
+        cmd = [self.exiftool_path, '-charset', 'iptc=utf8']
 
         for item in files_metadata:
             file_path = item['file']
