@@ -612,10 +612,13 @@ class SuperPickyMainWindow(QMainWindow):
 
     @Slot()
     def _on_path_entered(self):
-        """路径输入回车"""
+        """路径输入回车或失焦"""
         directory = self.dir_input.text().strip()
         if directory and os.path.isdir(directory):
-            self._handle_directory_selection(directory)
+            # V3.9: 防止重复处理（editingFinished 和 returnPressed 可能同时触发）
+            normalized = os.path.normpath(directory)
+            if normalized != os.path.normpath(self.directory_path or ""):
+                self._handle_directory_selection(directory)
         elif directory:
             StyledMessageBox.critical(
                 self,
@@ -643,6 +646,11 @@ class SuperPickyMainWindow(QMainWindow):
 
     def _handle_directory_selection(self, directory):
         """处理目录选择"""
+        # V3.9: 归一化路径并防止重复
+        directory = os.path.normpath(directory)
+        if directory == os.path.normpath(self.directory_path or ""):
+            return  # 同一个目录，跳过
+        
         self.directory_path = directory
         self.dir_input.setText(directory)
 
