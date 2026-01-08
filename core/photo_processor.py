@@ -595,19 +595,19 @@ class PhotoProcessor:
             pick = rating_result.pick
             reason = rating_result.reason
             
-            # V3.9: 根据 focus_weight 计算对焦状态文本
+            # V4.0: 根据 focus_sharpness_weight 计算对焦状态文本
             focus_status = None
             focus_status_en = None  # 英文版本用于调试图（避免中文字体问题）
-            if focus_weight > 1.0:
+            if focus_sharpness_weight > 1.0:
                 focus_status = "精准"
                 focus_status_en = "BEST"
-            elif focus_weight >= 1.0:
+            elif focus_sharpness_weight >= 1.0:
                 focus_status = "鸟身"
                 focus_status_en = "GOOD"
-            elif focus_weight >= 0.7:
+            elif focus_sharpness_weight >= 0.7:
                 focus_status = "偏移"
                 focus_status_en = "BAD"
-            elif focus_weight < 0.7:
+            elif focus_sharpness_weight < 0.7:
                 focus_status = "脱焦"
                 focus_status_en = "WORST"
             
