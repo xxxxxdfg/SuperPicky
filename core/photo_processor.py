@@ -466,9 +466,9 @@ class PhotoProcessor:
                     pass
             
             # Phase 3: 根据关键点可见性决定是否计算TOPIQ
-            # V3.8: 改用 all_keypoints_hidden，只要有一个关键点可见就计算
+            # V4.0: 眼睛可见度 < 30% 时也跳过 TOPIQ（节省时间）
             topiq = None
-            if detected and not all_keypoints_hidden:
+            if detected and not all_keypoints_hidden and best_eye_visibility >= 0.3:
                 # 双眼可见，需要计算NIMA以进行星级判定
                 try:
                     from iqa_scorer import get_iqa_scorer

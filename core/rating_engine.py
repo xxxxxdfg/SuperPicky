@@ -145,15 +145,8 @@ class RatingEngine:
                 pick=-1,
                 reason=f"置信度太低({confidence:.0%}<{self.min_confidence:.0%})，视为无鸟"
             )
-        
-        if topiq is not None and topiq < self.min_nima:
-            return RatingResult(
-                rating=0,
-                pick=0,
-                reason=f"美学太差({topiq:.1f}<{self.min_nima:.1f})"
-            )
-        
-        # 第三步：关键点可见性检查（V4.0: 改为 1 星而非 0 星）
+        # 第三步：关键点可见性检查（V4.0: 先判定眼睛）
+        # 如果看不到眼睛/嘴巴，直接给 1 星，不再判断美学
         if all_keypoints_hidden:
             return RatingResult(
                 rating=1,
@@ -161,12 +154,20 @@ class RatingEngine:
                 reason="角度不佳（关键点不可见，但有鸟）"
             )
         
-        # 第四步：锐度检查（只有眼睛可见时才有意义）
+        # 第四步：锐度检查
         if sharpness < self.min_sharpness:
             return RatingResult(
                 rating=0,
                 pick=0,
                 reason=f"锐度太低({sharpness:.0f}<{self.min_sharpness})"
+            )
+        
+        # 第五步：美学检查（放在眼睛和锐度之后）
+        if topiq is not None and topiq < self.min_nima:
+            return RatingResult(
+                rating=0,
+                pick=0,
+                reason=f"美学太差({topiq:.1f}<{self.min_nima:.1f})"
             )
         
         # V4.0: 曝光问题标记
