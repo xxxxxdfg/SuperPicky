@@ -138,8 +138,8 @@ def reset(directory, log_callback=None, i18n=None):
         log("\n" + i18n.t("logs.delete_xmp"))
     else:
         log("\n🗑️  删除XMP侧车文件...")
-    xmp_pattern = os.path.join(directory, "*.xmp")
-    xmp_files = glob.glob(xmp_pattern)
+    xmp_pattern = os.path.join(directory, "**/*.xmp")
+    xmp_files = glob.glob(xmp_pattern, recursive=True)
     # 过滤掉隐藏文件
     xmp_files = [f for f in xmp_files if not os.path.basename(f).startswith('.')]
     if xmp_files:
