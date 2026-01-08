@@ -138,12 +138,12 @@ class RatingEngine:
                 reason="未检测到鸟类"
             )
         
-        # 第二步：最低标准检查（不达标 → 0星普通）
+        # 第二步：置信度检查（低于 50% 视为无鸟）
         if confidence < self.min_confidence:
             return RatingResult(
-                rating=0,
-                pick=0,
-                reason=f"置信度太低({confidence:.0%}<{self.min_confidence:.0%})"
+                rating=-1,
+                pick=-1,
+                reason=f"置信度太低({confidence:.0%}<{self.min_confidence:.0%})，视为无鸟"
             )
         
         if topiq is not None and topiq < self.min_nima:
