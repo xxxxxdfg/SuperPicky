@@ -568,10 +568,21 @@ class PhotoProcessor:
             pick = rating_result.pick
             reason = rating_result.reason
             
+            # V3.9: 根据 focus_weight 计算对焦状态文本
+            focus_status = None
+            if focus_weight > 1.0:
+                focus_status = "头部"
+            elif focus_weight >= 1.0:
+                focus_status = "鸟身"
+            elif focus_weight >= 0.7:
+                focus_status = "偏移"
+            elif focus_weight < 0.7:
+                focus_status = "脱焦"
+            
             # 计算真正总耗时并输出简化日志
             photo_time_ms = (time.time() - photo_start_time) * 1000
             has_exposure_issue = is_overexposed or is_underexposed
-            self._log_photo_result_simple(i, total_files, filename, rating_value, reason, photo_time_ms, is_flying, has_exposure_issue)
+            self._log_photo_result_simple(i, total_files, filename, rating_value, reason, photo_time_ms, is_flying, has_exposure_issue, focus_status)
             
             # 记录统计
             self._update_stats(rating_value, is_flying, has_exposure_issue)
@@ -604,7 +615,7 @@ class PhotoProcessor:
             
             # V3.4: 以下操作对 RAW 和纯 JPEG 都执行
             if target_file_path and os.path.exists(target_file_path):
-                # 更新 CSV 中的关键点数据（V3.8: 使用加成后的值）
+                # 更新 CSV 中的关键点数据（V3.9: 添加对焦状态）
                 self._update_csv_keypoint_data(
                     file_prefix, 
                     rating_sharpness,  # 使用加成后的锐度
@@ -616,7 +627,8 @@ class PhotoProcessor:
                     rating_topiq,  # V3.8: 改为 rating_topiq
                     rating_value,
                     is_flying,
-                    flight_confidence
+                    flight_confidence,
+                    focus_status  # V3.9: 对焦状态
                 )
                 
                 # 收集3星照片（V3.8: 使用加成后的值）
@@ -681,7 +693,8 @@ class PhotoProcessor:
         reason: str,
         time_ms: float,
         is_flying: bool = False,  # V3.4: 飞鸟标识
-        has_exposure_issue: bool = False  # V3.8: 曝光问题标识
+        has_exposure_issue: bool = False,  # V3.8: 曝光问题标识
+        focus_status: str = None  # V3.9: 对焦状态
     ):
         """记录照片处理结果（简化版，单行输出）"""
         # 星级标识
@@ -694,6 +707,11 @@ class PhotoProcessor:
         # V3.8: 曝光问题标识
         exposure_tag = "【曝光】" if has_exposure_issue else ""
         
+        # V3.9: 对焦状态标识
+        focus_tag = ""
+        if focus_status and focus_status != "鸟身":
+            focus_tag = f"【{focus_status}】"
+        
         # 简化原因显示
         reason_short = reason if len(reason) < 20 else reason[:17] + "..."
         
@@ -704,7 +722,7 @@ class PhotoProcessor:
             time_text = f"{time_ms:.0f}ms"
         
         # 输出简化格式
-        self._log(f"[{index:03d}/{total}] {filename} | {star_text} ({reason_short}) {flight_tag}{exposure_tag}| {time_text}")
+        self._log(f"[{index:03d}/{total}] {filename} | {star_text} ({reason_short}) {flight_tag}{exposure_tag}{focus_tag}| {time_text}")
     
     def _update_stats(self, rating: int, is_flying: bool = False, has_exposure_issue: bool = False):
         """更新统计数据"""
@@ -740,9 +758,10 @@ class PhotoProcessor:
         nima: float,
         rating: int,
         is_flying: bool = False,
-        flight_confidence: float = 0.0
+        flight_confidence: float = 0.0,
+        focus_status: str = None  # V3.9: 对焦状态
     ):
-        """更新CSV中的关键点数据和评分（V3.4: 添加飞版检测字段）"""
+        """更新CSV中的关键点数据和评分（V3.9: 添加对焦状态字段）"""
         import csv
         
         csv_path = os.path.join(self.dir_path, ".superpicky", "report.csv")
@@ -756,6 +775,12 @@ class PhotoProcessor:
                 reader = csv.DictReader(f)
                 fieldnames = list(reader.fieldnames) if reader.fieldnames else []
                 
+                # V3.9: 如果没有 focus_status 字段则添加
+                if 'focus_status' not in fieldnames:
+                    # 在 rating 后面添加
+                    rating_idx = fieldnames.index('rating') if 'rating' in fieldnames else len(fieldnames)
+                    fieldnames.insert(rating_idx + 1, 'focus_status')
+                
                 for row in reader:
                     if row.get('filename') == filename:
                         # V3.4: 使用英文字段名更新数据
@@ -768,6 +793,8 @@ class PhotoProcessor:
                         row['is_flying'] = "yes" if is_flying else "no"
                         row['flight_conf'] = f"{flight_confidence:.2f}"
                         row['rating'] = str(rating)
+                        # V3.9: 对焦状态字段
+                        row['focus_status'] = focus_status if focus_status else "-"
                     rows.append(row)
             
             # 写回CSV
