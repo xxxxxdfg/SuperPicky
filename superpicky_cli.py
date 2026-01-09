@@ -652,11 +652,13 @@ Examples:
                           help='美学阈值 (TOPIQ, 默认: 5.0, 范围: 4.0-7.0)')
     p_process.add_argument('-c', '--confidence', type=int, default=50,
                           help='AI置信度阈值 (默认: 50)')
-    p_process.add_argument('--flight', action='store_true', default=True,
+    # 飞鸟检测（使用 store_true/store_false 组合，通过 set_defaults 设置默认值为 True）
+    p_process.add_argument('--flight', action='store_true', dest='flight',
                           help='识别飞鸟 (默认: 开启)')
     p_process.add_argument('--no-flight', action='store_false', dest='flight',
                           help='禁用飞鸟识别')
-    p_process.add_argument('--burst', action='store_true', default=True,
+    # 连拍检测（同样方式）
+    p_process.add_argument('--burst', action='store_true', dest='burst',
                           help='连拍检测 (默认: 开启)')
     p_process.add_argument('--no-burst', action='store_false', dest='burst',
                           help='禁用连拍检测')
@@ -666,7 +668,8 @@ Examples:
                           help='不清理临时JPG文件')
     p_process.add_argument('-q', '--quiet', action='store_true',
                           help='静默模式')
-    p_process.set_defaults(organize=True, cleanup=True, burst=True)
+    # V3.9: 使用 set_defaults 确保 flight, burst 默认为 True
+    p_process.set_defaults(organize=True, cleanup=True, burst=True, flight=True)
     
     # ===== reset 命令 =====
     p_reset = subparsers.add_parser('reset', help='重置目录')
