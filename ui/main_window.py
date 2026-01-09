@@ -1175,6 +1175,9 @@ class SuperPickyMainWindow(QMainWindow):
   {t("help.rule_1_star")}
   {t("help.rule_0_star")}
   {t("help.rule_flying")}
+  {t("help.rule_focus")}
+  {t("help.rule_exposure")}
+  {t("help.burst_info")}
 
 {t("help.ready")}
 
