@@ -139,6 +139,7 @@ def cmd_process(args):
     print(f"⚙️  锐度阈值: {args.sharpness}")
     print(f"  🎨 美学阈值: {args.nima_threshold} (默认: 5.0, TOPIQ)")
     print(f"⚙️  识别飞鸟: {'是' if args.flight else '否'}")
+    print(f"⚙️  连拍检测: {'是' if args.burst else '否'}")
     print(f"⚙️  整理文件: {'是' if args.organize else '否'}")
     print(f"⚙️  清理临时: {'是' if args.cleanup else '否'}")
     print()
@@ -164,6 +165,52 @@ def cmd_process(args):
         organize_files=args.organize,
         cleanup_temp=args.cleanup
     )
+    
+    # V4.0: 连拍检测（处理完成后执行）
+    if args.burst and args.organize:
+        from core.burst_detector import BurstDetector
+        from exiftool_manager import get_exiftool_manager
+        
+        print("\n📷 正在执行连拍检测...")
+        detector = BurstDetector(use_phash=True)
+        
+        rating_dirs = ['3星_优选', '2星_良好']
+        total_groups = 0
+        total_moved = 0
+        
+        exiftool_mgr = get_exiftool_manager()
+        
+        for rating_dir in rating_dirs:
+            subdir = os.path.join(args.directory, rating_dir)
+            if not os.path.exists(subdir):
+                continue
+            
+            # 获取文件列表
+            extensions = {'.nef', '.rw2', '.arw', '.cr2', '.cr3', '.orf', '.dng'}
+            filepaths = []
+            for entry in os.scandir(subdir):
+                if entry.is_file():
+                    ext = os.path.splitext(entry.name)[1].lower()
+                    if ext in extensions:
+                        filepaths.append(entry.path)
+            
+            if not filepaths:
+                continue
+            
+            photos = detector.read_timestamps(filepaths)
+            csv_path = os.path.join(args.directory, '.superpicky', 'report.csv')
+            photos = detector.enrich_from_csv(photos, csv_path)
+            groups = detector.detect_groups(photos)
+            groups = detector.select_best_in_groups(groups)
+            
+            burst_stats = detector.process_burst_groups(groups, subdir, exiftool_mgr)
+            total_groups += burst_stats['groups_processed']
+            total_moved += burst_stats['photos_moved']
+        
+        if total_groups > 0:
+            print(f"  ✅ 连拍检测完成: {total_groups} 组, 移动 {total_moved} 张照片")
+        else:
+            print("  ℹ️  未检测到连拍组")
     
     print("\n✅ 处理完成!")
     return 0
@@ -494,13 +541,17 @@ Examples:
                           help='识别飞鸟 (默认: 开启)')
     p_process.add_argument('--no-flight', action='store_false', dest='flight',
                           help='禁用飞鸟识别')
+    p_process.add_argument('--burst', action='store_true', default=True,
+                          help='连拍检测 (默认: 开启)')
+    p_process.add_argument('--no-burst', action='store_false', dest='burst',
+                          help='禁用连拍检测')
     p_process.add_argument('--no-organize', action='store_false', dest='organize',
                           help='不移动文件到分类文件夹')
     p_process.add_argument('--no-cleanup', action='store_false', dest='cleanup',
                           help='不清理临时JPG文件')
     p_process.add_argument('-q', '--quiet', action='store_true',
                           help='静默模式')
-    p_process.set_defaults(organize=True, cleanup=True)
+    p_process.set_defaults(organize=True, cleanup=True, burst=True)
     
     # ===== reset 命令 =====
     p_reset = subparsers.add_parser('reset', help='重置目录')

@@ -48,6 +48,7 @@ class ProcessingSettings:
     detect_flight: bool = True  # V3.4: 飞版检测开关
     detect_exposure: bool = False  # V3.8: 曝光检测开关（默认关闭）
     exposure_threshold: float = 0.10  # V3.8: 曝光阈值 (0.05-0.20)
+    detect_burst: bool = True  # V4.0: 连拍检测开关（默认开启）
 
 
 @dataclass

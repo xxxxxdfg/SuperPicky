@@ -157,7 +157,8 @@ class WorkerThread(threading.Thread):
             save_crop=self.ui_settings[3] if len(self.ui_settings) > 3 else False,
             normalization_mode=self.ui_settings[4] if len(self.ui_settings) > 4 else 'log_compression',
             detect_flight=self.ui_settings[5] if len(self.ui_settings) > 5 else True,
-            detect_exposure=self.ui_settings[6] if len(self.ui_settings) > 6 else False  # V3.8: 默认关闭
+            detect_exposure=self.ui_settings[6] if len(self.ui_settings) > 6 else False,  # V3.8: 默认关闭
+            detect_burst=self.ui_settings[7] if len(self.ui_settings) > 7 else True  # V4.0: 默认开启
         )
 
         def log_callback(msg, level="info"):
@@ -181,6 +182,52 @@ class WorkerThread(threading.Thread):
             organize_files=True,
             cleanup_temp=True
         )
+
+        # V4.0: 连拍检测（处理完成后执行）
+        if settings.detect_burst:
+            from core.burst_detector import BurstDetector
+            from exiftool_manager import get_exiftool_manager
+            
+            log_callback("📷 正在执行连拍检测...", "info")
+            
+            detector = BurstDetector(use_phash=True)
+            rating_dirs = ['3星_优选', '2星_良好']
+            total_groups = 0
+            total_moved = 0
+            
+            exiftool_mgr = get_exiftool_manager()
+            
+            for rating_dir in rating_dirs:
+                import os
+                subdir = os.path.join(self.dir_path, rating_dir)
+                if not os.path.exists(subdir):
+                    continue
+                
+                extensions = {'.nef', '.rw2', '.arw', '.cr2', '.cr3', '.orf', '.dng'}
+                filepaths = []
+                for entry in os.scandir(subdir):
+                    if entry.is_file():
+                        ext = os.path.splitext(entry.name)[1].lower()
+                        if ext in extensions:
+                            filepaths.append(entry.path)
+                
+                if not filepaths:
+                    continue
+                
+                photos = detector.read_timestamps(filepaths)
+                csv_path = os.path.join(self.dir_path, '.superpicky', 'report.csv')
+                photos = detector.enrich_from_csv(photos, csv_path)
+                groups = detector.detect_groups(photos)
+                groups = detector.select_best_in_groups(groups)
+                
+                burst_stats = detector.process_burst_groups(groups, subdir, exiftool_mgr)
+                total_groups += burst_stats['groups_processed']
+                total_moved += burst_stats['photos_moved']
+            
+            if total_groups > 0:
+                log_callback(f"✅ 连拍检测完成: {total_groups} 组, 移动 {total_moved} 张照片", "success")
+            else:
+                log_callback("ℹ️ 未检测到连拍组", "info")
 
         self.stats = result.stats
 
@@ -421,11 +468,25 @@ class SuperPickyMainWindow(QMainWindow):
 
         header_layout.addLayout(flight_layout)
         
+        # V4.0: 连拍检测开关
+        burst_layout = QHBoxLayout()
+        burst_layout.setSpacing(10)
+        
+        burst_label = QLabel("连拍")
+        burst_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
+        burst_layout.addWidget(burst_label)
+        
+        self.burst_check = QCheckBox()
+        self.burst_check.setChecked(True)  # 默认开启
+        burst_layout.addWidget(self.burst_check)
+        
+        header_layout.addLayout(burst_layout)
+        
         # V3.8: 曝光检测开关
         exposure_layout = QHBoxLayout()
         exposure_layout.setSpacing(10)
         
-        exposure_label = QLabel(self.i18n.t("labels.exposure_detection"))
+        exposure_label = QLabel("曝光")  # V4.0: 简化为"曝光"
         exposure_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 12px;")
         exposure_layout.addWidget(exposure_label)
         
@@ -749,7 +810,8 @@ class SuperPickyMainWindow(QMainWindow):
             False,
             self.norm_mode,
             self.flight_check.isChecked(),
-            self.exposure_check.isChecked()  # V3.8: 曝光检测开关
+            self.exposure_check.isChecked(),  # V3.8: 曝光检测开关
+            self.burst_check.isChecked()      # V4.0: 连拍检测开关
         ]
 
         # 创建信号
