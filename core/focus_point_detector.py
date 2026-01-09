@@ -844,7 +844,7 @@ def verify_focus_in_bbox(
     
     V4.0: 采用 4 层检测策略，返回两个权重：
     1. 头部区域内 → 锐度 1.1, 美学 1.0 (最佳)
-    2. SEG 掩码内 → 锐度 1.0, 美学 1.0 (正常)
+    2. SEG 掩码内 → 锐度 0.9, 美学 1.0 (轻微惩罚)
     3. BBox 内 → 锐度 0.7, 美学 0.9 (中度惩罚)
     4. BBox 外 → 锐度 0.5, 美学 0.8 (严重惩罚)
     
@@ -859,7 +859,7 @@ def verify_focus_in_bbox(
     Returns:
         (sharpness_weight, topiq_weight) 权重因子元组:
         - (1.1, 1.0): 对焦点在头部区域内
-        - (1.0, 1.0): 对焦点在 SEG 掩码内（但不在头部）
+        - (0.9, 1.0): 对焦点在 SEG 掩码内（但不在头部）
         - (0.7, 0.9): 对焦点在 BBox 内（但不在 SEG）
         - (0.5, 0.8): 对焦点在 BBox 外
         - (1.0, 1.0): 无对焦数据
@@ -886,7 +886,7 @@ def verify_focus_in_bbox(
         fx, fy = focus_px
         if 0 <= fy < seg_mask.shape[0] and 0 <= fx < seg_mask.shape[1]:
             if seg_mask[fy, fx] > 0:
-                return (1.0, 1.0)  # 对焦在鸟身上（但不在头部），正常
+                return (0.9, 1.0)  # 对焦在鸟身上（但不在头部），轻微惩罚
     
     # 检查是否在 BBox 内
     bx, by, bw, bh = bbox

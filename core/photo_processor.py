@@ -357,6 +357,45 @@ class PhotoProcessor:
             # 解构 AI 结果 (包含bbox, 图像尺寸, 分割掩码) - V3.2移除BRISQUE
             detected, _, confidence, sharpness, _, bird_bbox, img_dims, bird_mask = result
             
+            # V4.1: 早期退出 - 无鸟或置信度低，跳过所有后续检测
+            if not detected or (detected and confidence < 0.5):
+                photo_time_ms = (time.time() - photo_start_time) * 1000
+                
+                if not detected:
+                    rating_value = -1
+                    reason = "未检测到鸟类"
+                else:
+                    rating_value = 0
+                    reason = f"置信度低({confidence:.0%})"
+                
+                # 简化日志
+                self._log_photo_result_simple(i, total_files, filename, rating_value, reason, photo_time_ms, False, False, None)
+                
+                # 记录统计
+                self._update_stats(rating_value, False, False)
+                
+                # 记录评分（用于文件移动）
+                self.file_ratings[file_prefix] = rating_value
+                
+                # 写入简化 EXIF
+                if file_prefix in raw_dict:
+                    raw_extension = raw_dict[file_prefix]
+                    target_file_path = os.path.join(self.dir_path, file_prefix + raw_extension)
+                    if os.path.exists(target_file_path):
+                        single_batch = [{
+                            'file': target_file_path,
+                            'rating': 0 if rating_value >= 0 else 0,  # -1星也写0
+                            'pick': -1 if rating_value == -1 else 0,
+                            'sharpness': None,
+                            'nima_score': None,
+                            'label': None,
+                            'focus_status': None,
+                            'caption': f"{rating_value}星 | {reason}",
+                        }]
+                        exiftool_mgr.batch_set_metadata(single_batch)
+                
+                continue  # 跳过后续所有检测
+            
             # Phase 2: 关键点检测（在裁剪区域上执行，更准确）
             all_keypoints_hidden = False
             both_eyes_hidden = False  # 保留用于日志/调试

@@ -138,12 +138,12 @@ class RatingEngine:
                 reason="未检测到鸟类"
             )
         
-        # 第二步：置信度检查（低于 50% 视为无鸟）
+        # 第二步：置信度检查（低于 50% 给 0星）
         if confidence < self.min_confidence:
             return RatingResult(
-                rating=-1,
-                pick=-1,
-                reason=f"置信度太低({confidence:.0%}<{self.min_confidence:.0%})，视为无鸟"
+                rating=0,
+                pick=0,
+                reason=f"置信度低({confidence:.0%})"
             )
         # 第三步：关键点可见性检查（V4.0: 先判定眼睛）
         # 如果看不到眼睛/嘴巴，直接给 1 星，不再判断美学
