@@ -234,8 +234,9 @@ class ExifToolManager:
             
             # V4.0: 详细评分说明 → XMP:Description（题注）
             if caption is not None:
-                # 使用双引号包裹，处理特殊字符
-                cmd.append(f'-XMP:Description={caption}')
+                # V4.1: 将换行符替换为点号，避免 subprocess 命令解析问题
+                caption_safe = caption.replace('\n', '.')
+                cmd.append(f'-XMP:Description={caption_safe}')
 
             cmd.append(file_path)
             cmd.append('-overwrite_original')  # 放在每个文件之后
