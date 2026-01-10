@@ -1,6 +1,6 @@
 import os
 import site
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 
 # 获取当前工作目录
 base_path = os.path.abspath('.')
@@ -20,6 +20,9 @@ else:
 
 # 动态收集数据文件
 ultralytics_datas = collect_data_files('ultralytics')
+# V3.9.3: 收集 imageio 元数据（解决 No package metadata 错误）
+imageio_datas = collect_data_files('imageio')
+rawpy_datas = collect_data_files('rawpy')
 
 # 组合所有数据文件 (V3.7: 添加 TOPIQ 权重)
 all_datas = [
@@ -47,6 +50,11 @@ all_datas = [
 
 # 添加动态收集的数据
 all_datas.extend(ultralytics_datas)
+all_datas.extend(imageio_datas)
+all_datas.extend(rawpy_datas)
+# V3.9.3: 添加包元数据（dist-info），解决 No package metadata 错误
+all_datas.extend(copy_metadata('imageio'))
+all_datas.extend(copy_metadata('rawpy'))
 
 a = Analysis(
     ['main.py'],
@@ -126,8 +134,8 @@ app = BUNDLE(
         'NSHighResolutionCapable': 'True',
         'CFBundleName': 'SuperPicky',
         'CFBundleDisplayName': 'SuperPicky - 慧眼选鸟',
-        'CFBundleVersion': '3.9.0',
-        'CFBundleShortVersionString': '3.9.0',
+        'CFBundleVersion': '3.9.3',
+        'CFBundleShortVersionString': '3.9.3',
         'NSHumanReadableCopyright': 'Copyright © 2025 James Zhen Yu. All rights reserved.',
         'LSMinimumSystemVersion': '10.15',
         'NSRequiresAquaSystemAppearance': False,
