@@ -1207,14 +1207,14 @@ class SuperPickyMainWindow(QMainWindow):
         report += t("report.avg_time", avg=avg_time) + "\n\n"
 
         if total > 0:
-            report += f"  ★★★  {star_3:>4}  ({star_3/total*100:>5.1f}%)\n"
+            report += f"  ⭐⭐⭐  {star_3:>4}  ({star_3/total*100:>5.1f}%)\n"
             if picked > 0 and star_3 > 0:
-                report += f"       └ {picked} ({picked/star_3*100:.0f}%)\n"
-            report += f"  ★★   {star_2:>4}  ({star_2/total*100:>5.1f}%)\n"
-            report += f"  ★    {star_1:>4}  ({star_1/total*100:>5.1f}%)\n"
+                report += f"    └─ 🏆  {picked} ({picked/star_3*100:.0f}%)\n"
+            report += f"  ⭐⭐    {star_2:>4}  ({star_2/total*100:>5.1f}%)\n"
+            report += f"  ⭐      {star_1:>4}  ({star_1/total*100:>5.1f}%)\n"
             if star_0 > 0:
-                report += f"  0★   {star_0:>4}  ({star_0/total*100:>5.1f}%)\n"
-            report += f"  ---  {no_bird:>4}  ({no_bird/total*100:>5.1f}%)\n\n"
+                report += f"  0⭐     {star_0:>4}  ({star_0/total*100:>5.1f}%)\n"
+            report += f"  ❌      {no_bird:>4}  ({no_bird/total*100:>5.1f}%)\n\n"
             report += t("report.bird_total", count=bird_total, percent=bird_total/total*100) + "\n"
 
             if flying > 0:
