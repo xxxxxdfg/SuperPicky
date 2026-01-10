@@ -1179,9 +1179,7 @@ class SuperPickyMainWindow(QMainWindow):
   {t("help.rule_exposure")}
   {t("help.burst_info")}
 
-{t("help.ready")}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+{t("help.ready")}"""
         self._log(help_text)
 
     def _format_statistics_report(self, stats):
