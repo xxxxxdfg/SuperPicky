@@ -276,7 +276,11 @@ class PhotoProcessor:
         
         raw_time = time.time() - raw_start
         avg_time = raw_time / len(raw_files_to_convert) if len(raw_files_to_convert) > 0 else 0
-        self._log(f"⏱️  RAW转换耗时: {raw_time:.1f}秒 (平均 {avg_time:.1f}秒/张)\n")
+        # 智能选择时间单位：小于1秒显示毫秒
+        if avg_time < 1:
+            self._log(f"⏱️  RAW转换耗时: {raw_time:.1f}秒 (平均 {avg_time*1000:.0f}ms/张)\n")
+        else:
+            self._log(f"⏱️  RAW转换耗时: {raw_time:.1f}秒 (平均 {avg_time:.1f}秒/张)\n")
     
     def _process_images(self, files_tbr, raw_dict):
         """处理所有图片 - AI检测、关键点检测与评分"""
