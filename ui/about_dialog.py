@@ -86,7 +86,7 @@ class AboutDialog(QDialog):
         brand_layout = QVBoxLayout()
         brand_layout.setSpacing(4)
 
-        title = QLabel("SuperPicky")
+        title = QLabel(self.i18n.t("app.brand_name") if self.i18n else "SuperPicky")
         title.setStyleSheet(f"""
             color: {COLORS['text_primary']};
             font-size: 24px;
