@@ -585,89 +585,90 @@ class PhotoProcessor:
                 is_flying=False,             # 初步评分不考虑飞鸟加成
             )
             
-            # Phase 6: V4.0 对焦点验证（仅对 1 星以上照片）
+            # Phase 6: V4.0 对焦点验证
             # 4 层检测返回两个权重: 锐度权重 + 美学权重
             focus_sharpness_weight = 1.0  # 默认无影响
             focus_topiq_weight = 1.0      # 默认无影响
             focus_x, focus_y = None, None
             focus_data_available = False  # V3.9.3: 标记是否有对焦点数据
+            focus_result = None           # V3.9.3: 保存对焦检测结果用于调试图
             
-            # 只对 1 星以上照片做对焦检测（0 星和 -1 星跳过，节省时间）
+            # V3.9.3: 对焦点坐标获取（始终执行，用于调试图显示）
+            # 即使是 0 星照片，也需要在调试图中显示对焦点位置
+            if detected and bird_bbox is not None and img_dims is not None:
+                if file_prefix in raw_dict:
+                    raw_ext = raw_dict[file_prefix]
+                    raw_path = os.path.join(self.dir_path, file_prefix + raw_ext)
+                    # Nikon, Sony, Canon, Olympus, Fujifilm, Panasonic 全支持
+                    if raw_ext.lower() in ['.nef', '.nrw', '.arw', '.cr3', '.cr2', '.orf', '.raf', '.rw2']:
+                        try:
+                            focus_detector = get_focus_detector()
+                            focus_result = focus_detector.detect(raw_path)
+                            if focus_result is not None:
+                                focus_data_available = True
+                                focus_x, focus_y = focus_result.x, focus_result.y
+                        except Exception as e:
+                            pass  # 对焦检测失败不影响处理
+            
+            # V4.0: 对焦权重计算（仅对 1 星以上照片，节省时间）
             if preliminary_result.rating >= 1:
-                if detected and bird_bbox is not None and img_dims is not None:
-                    if file_prefix in raw_dict:
-                        raw_ext = raw_dict[file_prefix]
-                        raw_path = os.path.join(self.dir_path, file_prefix + raw_ext)
-                        # Nikon, Sony, Canon, Olympus, Fujifilm, Panasonic 全支持
-                        if raw_ext.lower() in ['.nef', '.nrw', '.arw', '.cr3', '.cr2', '.orf', '.raf', '.rw2']:
-                            try:
-                                focus_detector = get_focus_detector()
-                                focus_result = focus_detector.detect(raw_path)
-                                if focus_result is not None:
-                                    focus_data_available = True
-                                    # V3.9 修复：使用原图尺寸而非 resize 后的 img_dims
-                                    # head_center_orig 和 bird_mask_orig 都是原图坐标系
-                                    # V3.9.3: 修复 dir() 无法检测局部变量的 bug
-                                    try:
-                                        orig_dims = (w_orig, h_orig)
-                                    except NameError:
-                                        orig_dims = img_dims
-                                    
-                                    # V3.9.3: 修复 BBox 坐标系不匹配 bug
-                                    # bird_bbox 是缩放后的坐标，需要转换到原图坐标系
-                                    if img_dims is not None and bird_bbox is not None:
-                                        scale_x = orig_dims[0] / img_dims[0]
-                                        scale_y = orig_dims[1] / img_dims[1]
-                                        bx, by, bw, bh = bird_bbox
-                                        bird_bbox_orig = (
-                                            int(bx * scale_x),
-                                            int(by * scale_y),
-                                            int(bw * scale_x),
-                                            int(bh * scale_y)
-                                        )
-                                    else:
-                                        bird_bbox_orig = bird_bbox
-                                    
-                                    # V4.0: 返回元组 (锐度权重, 美学权重)
-                                    focus_sharpness_weight, focus_topiq_weight = verify_focus_in_bbox(
-                                        focus_result, 
-                                        bird_bbox_orig,  # V3.9.3: 使用原图坐标系的 BBox
-                                        orig_dims,       # 使用原图尺寸！
-                                        seg_mask=bird_mask_orig,
-                                        head_center=head_center_orig,
-                                        head_radius=head_radius_val,
-                                    )
-                                    focus_x, focus_y = focus_result.x, focus_result.y
-                            except Exception as e:
-                                pass  # 对焦检测失败不影响处理
-                            
-                            # V3.9.3: 如果支持对焦检测的 RAW 文件但无法获取对焦点数据
-                            if not focus_data_available:
-                                # 检查是否是手动对焦模式 - 手动对焦不惩罚
-                                is_manual_focus = False
-                                try:
-                                    # 用 exiftool 读取 FocusMode
-                                    import subprocess
-                                    exiftool_path = focus_detector._get_exiftool_path()
-                                    result = subprocess.run(
-                                        [exiftool_path, '-FocusMode', '-s', '-s', '-s', raw_path],
-                                        capture_output=True, text=True, timeout=5
-                                    )
-                                    focus_mode = result.stdout.strip().lower()
-                                    # 手动对焦模式: MF, Manual, M
-                                    if 'manual' in focus_mode or focus_mode == 'mf' or focus_mode == 'm':
-                                        is_manual_focus = True
-                                except:
-                                    pass
-                                
-                                if is_manual_focus:
-                                    # 手动对焦：用户主动选择，不惩罚
-                                    focus_sharpness_weight = 1.0
-                                    focus_topiq_weight = 1.0
-                                else:
-                                    # 自动对焦但无法获取对焦点：可能是 Auto AF 模式未记录位置
-                                    focus_sharpness_weight = 0.7  # 无法验证对焦位置，降低锐度权重
-                                    focus_topiq_weight = 0.9     # 美学也略微降低
+                if focus_data_available and focus_result is not None:
+                    # V3.9 修复：使用原图尺寸而非 resize 后的 img_dims
+                    try:
+                        orig_dims = (w_orig, h_orig)
+                    except NameError:
+                        orig_dims = img_dims
+                    
+                    # V3.9.3: 修复 BBox 坐标系不匹配 bug
+                    if img_dims is not None and bird_bbox is not None:
+                        scale_x = orig_dims[0] / img_dims[0]
+                        scale_y = orig_dims[1] / img_dims[1]
+                        bx, by, bw, bh = bird_bbox
+                        bird_bbox_orig = (
+                            int(bx * scale_x),
+                            int(by * scale_y),
+                            int(bw * scale_x),
+                            int(bh * scale_y)
+                        )
+                    else:
+                        bird_bbox_orig = bird_bbox
+                    
+                    # V4.0: 返回元组 (锐度权重, 美学权重)
+                    focus_sharpness_weight, focus_topiq_weight = verify_focus_in_bbox(
+                        focus_result, 
+                        bird_bbox_orig,
+                        orig_dims,
+                        seg_mask=bird_mask_orig,
+                        head_center=head_center_orig,
+                        head_radius=head_radius_val,
+                    )
+                elif file_prefix in raw_dict:
+                    # V3.9.3: 支持对焦检测的 RAW 文件但无法获取对焦点数据
+                    raw_ext = raw_dict[file_prefix]
+                    if raw_ext.lower() in ['.nef', '.nrw', '.arw', '.cr3', '.cr2', '.orf', '.raf', '.rw2']:
+                        # 检查是否是手动对焦模式
+                        is_manual_focus = False
+                        try:
+                            import subprocess
+                            focus_detector = get_focus_detector()
+                            exiftool_path = focus_detector._get_exiftool_path()
+                            raw_path = os.path.join(self.dir_path, file_prefix + raw_ext)
+                            result = subprocess.run(
+                                [exiftool_path, '-FocusMode', '-s', '-s', '-s', raw_path],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            focus_mode = result.stdout.strip().lower()
+                            if 'manual' in focus_mode or focus_mode == 'mf' or focus_mode == 'm':
+                                is_manual_focus = True
+                        except:
+                            pass
+                        
+                        if is_manual_focus:
+                            focus_sharpness_weight = 1.0
+                            focus_topiq_weight = 1.0
+                        else:
+                            focus_sharpness_weight = 0.7
+                            focus_topiq_weight = 0.9
             
             # V4.0: 最终评分计算（传入对焦权重和飞鸟状态）
             # 注意: 现在总是重新计算，因为需要传入 is_flying 参数
