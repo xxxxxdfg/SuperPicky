@@ -86,20 +86,39 @@ class BurstDetector:
     
     def _find_exiftool(self) -> str:
         """查找 ExifTool 路径"""
+        # V3.9.4: 处理 Windows 平台的可执行文件后缀
+        is_windows = sys.platform.startswith('win')
+        exe_name = 'exiftool.exe' if is_windows else 'exiftool'
+
         # V3.9: 优先检查 PyInstaller 打包环境
         if hasattr(sys, '_MEIPASS'):
-            bundled = os.path.join(sys._MEIPASS, 'exiftool_bundle', 'exiftool')
+            bundled = os.path.join(sys._MEIPASS, 'exiftool_bundle', exe_name)
             if os.path.exists(bundled):
                 return bundled
+            # 备选
+            fallback = os.path.join(sys._MEIPASS, 'exiftool_bundle', 'exiftool')
+            if os.path.exists(fallback):
+                return fallback
         
         # 开发环境: 优先使用项目内置的 exiftool
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        if is_windows:
+            builtin_win = os.path.join(project_root, 'exiftool.exe')
+            if os.path.exists(builtin_win):
+                return builtin_win
+
         builtin = os.path.join(project_root, 'exiftool')
         if os.path.exists(builtin):
             return builtin
         
         # 否则使用系统 exiftool
-        return 'exiftool'
+        import shutil
+        system_exiftool = shutil.which('exiftool')
+        if system_exiftool:
+            return system_exiftool
+            
+        return exe_name if is_windows else 'exiftool'
     
     def read_timestamps(self, filepaths: List[str]) -> List[PhotoTimestamp]:
         """
@@ -114,21 +133,29 @@ class BurstDetector:
         if not filepaths:
             return []
         
-        # 使用 exiftool 批量读取
+        # V3.9.4: 预处理路径，确保全部是规范的绝对路径
+        filepaths = [os.path.abspath(p) for p in filepaths]
+        
+        # 使用 exiftool 批量读取，使用 -@ - 避免命令行长度限制
         cmd = [
             self.exiftool_path,
             '-json',
             '-DateTimeOriginal',
             '-SubSecTimeOriginal',
             '-Rating',
-        ] + filepaths
+            '-@', '-'
+        ]
         
         try:
+            # 将路径列表转换为换行符分隔的字符串
+            paths_input = "\n".join(filepaths)
+            
             result = subprocess.run(
                 cmd,
+                input=paths_input,
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=max(60, len(filepaths) // 10)  # 根据文件数量动态调整超时
             )
             
             if result.returncode != 0:
@@ -158,7 +185,8 @@ class BurstDetector:
         results = []
         
         for item in exif_data:
-            filepath = item.get('SourceFile', '')
+            # V3.9.4: 统一规范化路径
+            filepath = os.path.normpath(item.get('SourceFile', ''))
             dt_str = item.get('DateTimeOriginal', '')
             subsec = item.get('SubSecTimeOriginal', '')
             rating = item.get('Rating', 0) or 0
@@ -408,7 +436,8 @@ class BurstDetector:
         self,
         groups: List[BurstGroup],
         output_dir: str,
-        exiftool_mgr=None
+        exiftool_mgr=None,
+        log_callback=None
     ) -> Dict[str, int]:
         """
         处理连拍组：创建子目录、移动文件、设置标签
@@ -435,18 +464,48 @@ class BurstDetector:
             
             best_photo = group.best_photo
             
+            # V4.1: 增强调试日志
+            if log_callback:
+                log_callback(f"  📦 处理组 #{group.group_id}: {group.count} 张照片 (最佳: {os.path.basename(best_photo.filepath) if best_photo else 'None'})", "info")
+            
             for i, photo in enumerate(group.photos):
                 if i == group.best_index:
-                    # 最佳照片：保留原位（V4.1: 不再设置紫色标签，避免覆盖飞鸟/对焦标签）
+                    # 最佳照片：保留原位
                     stats['best_marked'] += 1
                 else:
-                    # 非最佳：移入子目录
                     try:
-                        dest = os.path.join(burst_dir, os.path.basename(photo.filepath))
-                        if os.path.exists(photo.filepath):
-                            shutil.move(photo.filepath, dest)
+                        # V3.9.4: 统一规范化路径并进行不区分大小写的匹配（如果必要）
+                        src_path = os.path.normpath(photo.filepath)
+                        # 再次尝试匹配：如果 SourceFile 只有文件名，则拼上 output_dir
+                        if not os.path.exists(src_path):
+                            fallback_path = os.path.join(output_dir, os.path.basename(src_path))
+                            if os.path.exists(fallback_path):
+                                src_path = fallback_path
+                        
+                        filename = os.path.basename(src_path)
+                        dest = os.path.join(burst_dir, filename)
+                        
+                        if os.path.exists(src_path):
+                            # V4.1: 记录移动操作
+                            shutil.move(src_path, dest)
                             stats['photos_moved'] += 1
+                            
+                            # 尝试同时移动对应的 sidecar 文件 (如 .xmp, .jpg)
+                            file_prefix = os.path.splitext(src_path)[0]
+                            for sidecar_ext in ['.xmp', '.jpg', '.JPG', '.ARW.xmp', '.nef.xmp']:
+                                sidecar_path = file_prefix + sidecar_ext
+                                if os.path.exists(sidecar_path):
+                                    try:
+                                        shutil.move(sidecar_path, os.path.join(burst_dir, os.path.basename(sidecar_path)))
+                                    except:
+                                        pass
+                        else:
+                            if log_callback:
+                                log_callback(f"    ⚠️ 找不到文件: {filename}", "warning")
+                                print(f"DEBUG: File not found at {src_path}")
                     except Exception as e:
+                        if log_callback:
+                            log_callback(f"    ❌ 移动失败 {filename}: {e}", "error")
                         print(f"⚠️ 移动文件失败: {e}")
             
             stats['groups_processed'] += 1

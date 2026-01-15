@@ -29,6 +29,10 @@ class ExifToolManager:
 
     def _get_exiftool_path(self) -> str:
         """获取exiftool可执行文件路径"""
+        # V3.9.4: 处理 Windows 平台的可执行文件后缀
+        is_windows = sys.platform.startswith('win')
+        exe_name = 'exiftool.exe' if is_windows else 'exiftool'
+
         if hasattr(sys, '_MEIPASS'):
             # PyInstaller打包后的路径
             base_path = sys._MEIPASS
@@ -36,19 +40,24 @@ class ExifToolManager:
             print(f"   base_path (sys._MEIPASS): {base_path}")
 
             # 直接使用 exiftool_bundle/exiftool 路径（唯一打包位置）
-            exiftool_path = os.path.join(base_path, 'exiftool_bundle', 'exiftool')
+            exiftool_path = os.path.join(base_path, 'exiftool_bundle', exe_name)
             abs_path = os.path.abspath(exiftool_path)
 
-            print(f"   正在检查 exiftool...")
+            print(f"   正在检查 {exe_name}...")
             print(f"   路径: {abs_path}")
             print(f"   存在: {os.path.exists(abs_path)}")
-            print(f"   可执行: {os.access(abs_path, os.X_OK) if os.path.exists(abs_path) else False}")
-
-            if os.path.exists(abs_path) and os.access(abs_path, os.X_OK):
-                print(f"   ✅ 找到 exiftool")
+            
+            if os.path.exists(abs_path):
+                print(f"   ✅ 找到 {exe_name}")
                 return abs_path
             else:
-                print(f"   ⚠️  未找到可执行的 exiftool")
+                # 尝试不带后缀的路径（以防打包逻辑有变）
+                fallback_path = os.path.join(base_path, 'exiftool_bundle', 'exiftool')
+                if os.path.exists(fallback_path):
+                    print(f"   ✅ 找到 exiftool (fallback)")
+                    return fallback_path
+                
+                print(f"   ⚠️  未找到可执行的 {exe_name}")
                 return abs_path
         else:
             # 开发环境路径
@@ -61,6 +70,13 @@ class ExifToolManager:
             
             # 回退到项目目录下的 exiftool
             project_root = os.path.dirname(os.path.abspath(__file__))
+            
+            # 优先检查带 .exe 的路径 (Windows 开发环境可能手动放了 exiftool.exe)
+            if is_windows:
+                win_path = os.path.join(project_root, 'exiftool.exe')
+                if os.path.exists(win_path):
+                    return win_path
+            
             return os.path.join(project_root, 'exiftool')
 
     def _verify_exiftool(self) -> bool:

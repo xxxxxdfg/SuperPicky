@@ -117,6 +117,9 @@ class WorkerThread(threading.Thread):
 
     def _start_caffeinate(self):
         """启动防休眠"""
+        if sys.platform != 'darwin':
+            return  # 目前仅在 macOS 上支持 caffeinate
+            
         try:
             # V3.8.1: 先清理残留的 caffeinate 进程，避免累积
             try:
@@ -230,7 +233,7 @@ class WorkerThread(threading.Thread):
                 groups = detector.detect_groups(photos)
                 groups = detector.select_best_in_groups(groups)
                 
-                burst_stats = detector.process_burst_groups(groups, subdir, exiftool_mgr)
+                burst_stats = detector.process_burst_groups(groups, subdir, exiftool_mgr, log_callback=log_callback)
                 total_groups += burst_stats['groups_processed']
                 total_moved += burst_stats['photos_moved']
             
@@ -901,7 +904,15 @@ class SuperPickyMainWindow(QMainWindow):
 
         # 打开目录
         if self.directory_path and os.path.exists(self.directory_path):
-            subprocess.Popen(['open', self.directory_path])
+            if sys.platform == 'darwin':
+                subprocess.Popen(['open', self.directory_path])
+            elif sys.platform.startswith('win'):
+                os.startfile(self.directory_path)
+            else:
+                try:
+                    subprocess.Popen(['xdg-open', self.directory_path])
+                except Exception:
+                    pass
 
     @Slot(str)
     def _on_error(self, error_msg):
@@ -1292,7 +1303,7 @@ class SuperPickyMainWindow(QMainWindow):
             "img", "toy-story-short-happy-audio-logo-short-cartoony-intro-outro-music-125627.mp3"
         )
 
-        if os.path.exists(sound_path):
+        if os.path.exists(sound_path) and sys.platform == 'darwin':
             try:
                 subprocess.Popen(
                     ['afplay', sound_path],

@@ -95,7 +95,10 @@ def reset(directory, log_callback=None, i18n=None):
             # 尝试使用系统命令强制删除（macOS/Linux）
             try:
                 import subprocess
-                subprocess.run(['rm', '-rf', tmp_dir], check=True)
+                if os.name == 'nt':
+                     subprocess.run(['cmd', '/c', 'rd', '/s', '/q', tmp_dir], check=True)
+                else:
+                    subprocess.run(['rm', '-rf', tmp_dir], check=True)
                 if i18n:
                     log(i18n.t("logs.tmp_force_delete"))
                 else:
@@ -182,6 +185,9 @@ def reset(directory, log_callback=None, i18n=None):
         # 过滤掉隐藏文件（以.开头的文件）
         files = [f for f in files if not os.path.basename(f).startswith('.')]
         image_files.extend(files)
+
+    # V3.9.4: 对文件列表执行去重（Windows 下 *.NEF 和 *.nef 匹配结果相同，会导致计数翻倍）
+    image_files = sorted(list(set(os.path.abspath(f) for f in image_files)))
 
     if image_files:
         if i18n:

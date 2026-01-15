@@ -906,9 +906,18 @@ _focus_detector: Optional[FocusPointDetector] = None
 
 def _get_exiftool_path() -> str:
     """获取 exiftool 路径（支持 PyInstaller 打包）"""
+    # V3.9.4: 处理 Windows 平台的可执行文件后缀
+    is_windows = sys.platform.startswith('win')
+    exe_name = 'exiftool.exe' if is_windows else 'exiftool'
+
     if hasattr(sys, '_MEIPASS'):
         # PyInstaller 打包后
-        path = os.path.join(sys._MEIPASS, 'exiftool_bundle', 'exiftool')
+        path = os.path.join(sys._MEIPASS, 'exiftool_bundle', exe_name)
+        if not os.path.exists(path):
+            # 备选路径
+            fallback = os.path.join(sys._MEIPASS, 'exiftool_bundle', 'exiftool')
+            if os.path.exists(fallback):
+                path = fallback
         print(f"🔍 FocusPointDetector: 使用打包 exiftool: {path}")
         return path
     else:
@@ -917,7 +926,15 @@ def _get_exiftool_path() -> str:
         system_exiftool = shutil.which('exiftool')
         if system_exiftool:
             return system_exiftool
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'exiftool')
+        
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # 优先检查带 .exe 的路径
+        if is_windows:
+            win_path = os.path.join(project_root, 'exiftool.exe')
+            if os.path.exists(win_path):
+                return win_path
+                
+        return os.path.join(project_root, 'exiftool')
 
 
 def get_focus_detector() -> FocusPointDetector:
