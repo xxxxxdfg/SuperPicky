@@ -86,11 +86,15 @@ class ExifToolManager:
         print(f"   测试命令: {self.exiftool_path} -ver")
 
         try:
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 [self.exiftool_path, '-ver'],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
+                creationflags=creationflags
             )
             print(f"   返回码: {result.returncode}")
             print(f"   stdout: {result.stdout.strip()}")
@@ -161,11 +165,15 @@ class ExifToolManager:
         cmd.extend(['-overwrite_original', file_path])
 
         try:
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
+                creationflags=creationflags
             )
 
             if result.returncode == 0:
@@ -276,11 +284,15 @@ class ExifToolManager:
             if len(files_metadata) > 1:
                 print(f"📦 批量处理 {len(files_metadata)} 个文件...")
 
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5分钟超时
+                timeout=300,  # 5分钟超时
+                creationflags=creationflags
             )
 
             if result.returncode == 0:
@@ -331,7 +343,10 @@ class ExifToolManager:
                     '-TagsFromFile', file_path,
                     '-XMP:all<XMP:all'
                 ]
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                # V3.9.4: 在 Windows 上隐藏控制台窗口
+                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, creationflags=creationflags)
                 # 不需要打印成功消息，避免刷屏
             except Exception:
                 pass  # 侧车文件创建失败不影响主流程
@@ -362,11 +377,15 @@ class ExifToolManager:
         ]
 
         try:
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
+                creationflags=creationflags
             )
 
             if result.returncode == 0:
@@ -408,11 +427,15 @@ class ExifToolManager:
         ]
 
         try:
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
+                creationflags=creationflags
             )
 
             if result.returncode == 0:
@@ -489,11 +512,15 @@ class ExifToolManager:
             ] + valid_files
 
             try:
+                # V3.9.4: 在 Windows 上隐藏控制台窗口
+                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+                
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
-                    timeout=120
+                    timeout=120,
+                    creationflags=creationflags
                 )
 
                 if result.returncode == 0:

@@ -31,12 +31,16 @@ def _start_exiftool_process(exiftool_path: str = 'exiftool'):
     """启动 exiftool 常驻进程"""
     global _exiftool_process
     try:
+        # V3.9.4: 在 Windows 上隐藏控制台窗口
+        creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+        
         _exiftool_process = subprocess.Popen(
             [exiftool_path, '-stay_open', 'True', '-@', '-'],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
+            creationflags=creationflags,  # 隐藏窗口
             bufsize=1  # 行缓冲
         )
         return _exiftool_process
@@ -764,7 +768,10 @@ class FocusPointDetector:
         cmd.append(file_path)
         
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, creationflags=creationflags)
             if result.returncode != 0:
                 return None
             data = json.loads(result.stdout)

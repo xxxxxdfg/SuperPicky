@@ -659,9 +659,12 @@ class PhotoProcessor:
                             focus_detector = get_focus_detector()
                             exiftool_path = focus_detector._get_exiftool_path()
                             raw_path = os.path.join(self.dir_path, file_prefix + raw_ext)
+                            # V3.9.4: 在 Windows 上隐藏控制台窗口
+                            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
                             result = subprocess.run(
                                 [exiftool_path, '-FocusMode', '-s', '-s', '-s', raw_path],
-                                capture_output=True, text=True, timeout=5
+                                capture_output=True, text=True, timeout=5,
+                                creationflags=creationflags
                             )
                             focus_mode = result.stdout.strip().lower()
                             if 'manual' in focus_mode or focus_mode == 'mf' or focus_mode == 'm':

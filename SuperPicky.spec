@@ -6,49 +6,38 @@ from PyInstaller.utils.hooks import collect_data_files, copy_metadata
 base_path = os.path.abspath('.')
 
 # 动态获取 site-packages 路径
-site_packages = site.getsitepackages()[0]
-user_site = site.getusersitepackages()
+# 在 venv 环境下，site.getsitepackages() 通常包含 venv 的 site-packages
+sp = site.getsitepackages()
+site_packages = sp[1] if len(sp) > 1 else sp[0]
 
-# V3.7: 切换到 TOPIQ 美学评分模型
-# 处理 ultralytics
-if os.path.exists(os.path.join(user_site, 'ultralytics')):
-    ultralytics_base = user_site
-elif os.path.exists(os.path.join(site_packages, 'ultralytics')):
-    ultralytics_base = site_packages
-else:
-    ultralytics_base = '/Users/jameszhenyu/Library/Python/3.9/lib/python/site-packages'
+# 处理 ultralytics 路径
+ultralytics_base = site_packages
+if not os.path.exists(os.path.join(ultralytics_base, 'ultralytics')):
+    # 备选方案：尝试从模块导入获取路径
+    try:
+        import ultralytics
+        ultralytics_base = os.path.dirname(os.path.dirname(ultralytics.__file__))
+    except ImportError:
+        pass
 
 # 动态收集数据文件
 ultralytics_datas = collect_data_files('ultralytics')
-# V3.9.3: 收集 imageio 元数据（解决 No package metadata 错误）
 imageio_datas = collect_data_files('imageio')
 rawpy_datas = collect_data_files('rawpy')
 
-# 组合所有数据文件 (V3.7: 添加 TOPIQ 权重)
+# 组合所有数据文件
 all_datas = [
     # AI模型文件
-    (os.path.join(base_path, 'models/yolo11l-seg.pt'), 'models'),
-    # V3.5: 鸟类关键点检测模型
-    (os.path.join(base_path, 'models/cub200_keypoint_resnet50.pth'), 'models'),
-    # V3.5: 飞行姿态检测模型
-    (os.path.join(base_path, 'models/superFlier_efficientnet.pth'), 'models'),
-    # V3.7: TOPIQ 美学评分模型 (替代 NIMA)
-    (os.path.join(base_path, 'models/cfanet_iaa_ava_res50-3cd62bb3.pth'), 'models'),
-
+    (os.path.join(base_path, 'models'), 'models'),
     # ExifTool 完整打包
     (os.path.join(base_path, 'exiftool_bundle'), 'exiftool_bundle'),
-
     # 图片资源
     (os.path.join(base_path, 'img'), 'img'),
-
     # 国际化语言包
     (os.path.join(base_path, 'locales'), 'locales'),
-    
-    # V3.9.3: 本地化资源（应用名称中英文显示）
-    (os.path.join(base_path, 'Resources/zh-Hans.lproj'), 'Resources/zh-Hans.lproj'),
-    (os.path.join(base_path, 'Resources/en.lproj'), 'Resources/en.lproj'),
-    
-    # Ultralytics 配置（手动添加完整 cfg 目录）
+    # 本地化资源
+    (os.path.join(base_path, 'Resources'), 'Resources'),
+    # Ultralytics 配置
     (os.path.join(ultralytics_base, 'ultralytics/cfg'), 'ultralytics/cfg'),
 ]
 
@@ -56,9 +45,10 @@ all_datas = [
 all_datas.extend(ultralytics_datas)
 all_datas.extend(imageio_datas)
 all_datas.extend(rawpy_datas)
-# V3.9.3: 添加包元数据（dist-info），解决 No package metadata 错误
+# 添加包元数据
 all_datas.extend(copy_metadata('imageio'))
 all_datas.extend(copy_metadata('rawpy'))
+all_datas.extend(copy_metadata('ultralytics'))
 
 a = Analysis(
     ['main.py'],
@@ -76,22 +66,17 @@ a = Analysis(
         'matplotlib',
         'matplotlib.pyplot',
         'matplotlib.backends.backend_agg',
-        # V3.6: PySide6 GUI
         'PySide6',
         'PySide6.QtCore',
         'PySide6.QtGui',
         'PySide6.QtWidgets',
-        # V3.7: TOPIQ 依赖 timm (ResNet50)
         'timm',
         'timm.models',
         'timm.models.resnet',
-        # V3.9.3: 图像处理依赖
         'imageio',
         'rawpy',
-        # V3.9.3: 连拍检测和 pHash
         'imagehash',
-        'pywt',  # imagehash 依赖
-        # V3.9.3: core 模块包（PyInstaller 需要显式包含）
+        'pywt',
         'core',
         'core.burst_detector',
         'core.config_manager',
@@ -103,13 +88,12 @@ a = Analysis(
         'core.photo_processor',
         'core.rating_engine',
         'core.stats_formatter',
-        # V3.9.3: multiprocessing spawn 模式支持
         'multiprocessing',
         'multiprocessing.spawn',
     ],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=['pyi_rth_cv2.py'],  # V3.6: cv2 预加载钩子防止递归错误
+    runtime_hooks=['pyi_rth_cv2.py'] if os.path.exists('pyi_rth_cv2.py') else [],
     excludes=['PyQt5', 'PyQt6', 'tkinter'],
     noarchive=False,
     optimize=0,
@@ -131,9 +115,9 @@ exe = EXE(
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
-    codesign_identity=None,  # V3.6: 禁用签名以便测试
-    entitlements_file=None,  # V3.6: 禁用权限以便测试
-    icon='img/SuperPicky-V0.02.icns',
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=os.path.join(base_path, 'img', 'SuperPicky-V0.02.icns') if os.path.exists(os.path.join(base_path, 'img', 'SuperPicky-V0.02.icns')) else None,
 )
 
 coll = COLLECT(
@@ -144,22 +128,4 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name='SuperPicky',
-)
-
-app = BUNDLE(
-    coll,
-    name='SuperPicky.app',
-    icon='img/SuperPicky-V0.02.icns',
-    bundle_identifier='com.jamesphotography.superpicky',
-    info_plist={
-        'NSPrincipalClass': 'NSApplication',
-        'NSHighResolutionCapable': 'True',
-        'CFBundleName': 'SuperPicky',
-        'CFBundleDisplayName': 'SuperPicky - 慧眼选鸟',
-        'CFBundleVersion': '3.9.3',
-        'CFBundleShortVersionString': '3.9.3',
-        'NSHumanReadableCopyright': 'Copyright © 2025 James Zhen Yu. All rights reserved.',
-        'LSMinimumSystemVersion': '10.15',
-        'NSRequiresAquaSystemAppearance': False,
-    },
 )
