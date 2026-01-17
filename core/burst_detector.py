@@ -151,13 +151,17 @@ class BurstDetector:
             # 将路径列表转换为换行符分隔的字符串
             paths_input = "\n".join(filepaths)
             
+            # V3.9.4: 在 Windows 上隐藏控制台窗口
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+            
             result = subprocess.run(
                 cmd,
                 input=paths_input,
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
-                timeout=max(60, len(filepaths) // 10)  # 根据文件数量动态调整超时
+                timeout=max(60, len(filepaths) // 10),  # 根据文件数量动态调整超时
+                creationflags=creationflags
             )
             
             stdout = result.stdout or ""

@@ -418,13 +418,16 @@ class SuperPickyMainWindow(QMainWindow):
             else:
                 # 回退到 git 命令（开发环境）
                 import subprocess
+                # V3.9.4: 在 Windows 上隐藏控制台窗口
+                creationflags = subprocess.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
                 result = subprocess.run(
                     ['git', 'rev-parse', '--short', 'HEAD'],
                     capture_output=True, 
                     text=True, 
                     encoding='utf-8',
                     timeout=2,
-                    cwd=os.path.dirname(os.path.dirname(__file__))
+                    cwd=os.path.dirname(os.path.dirname(__file__)),
+                    creationflags=creationflags
                 )
                 if result.returncode == 0:
                     commit_hash = result.stdout.strip()
