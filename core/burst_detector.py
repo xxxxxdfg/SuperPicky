@@ -160,11 +160,13 @@ class BurstDetector:
                 timeout=max(60, len(filepaths) // 10)  # 根据文件数量动态调整超时
             )
             
-            if result.returncode != 0:
-                print(f"⚠️ ExifTool 读取时间戳失败: {result.stderr}")
+            stdout = result.stdout or ""
+            if not stdout.strip():
+                if result.stderr:
+                    print(f"⚠️ ExifTool 输出为空: {result.stderr}")
                 return []
             
-            exif_data = json.loads(result.stdout)
+            exif_data = json.loads(stdout)
             return self._parse_exif_timestamps(exif_data)
             
         except subprocess.TimeoutExpired:

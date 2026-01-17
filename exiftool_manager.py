@@ -392,7 +392,10 @@ class ExifToolManager:
 
             if result.returncode == 0:
                 import json
-                data = json.loads(result.stdout)
+                stdout = result.stdout or ""
+                if not stdout.strip():
+                    return None
+                data = json.loads(stdout)
                 return data[0] if data else None
             else:
                 return None

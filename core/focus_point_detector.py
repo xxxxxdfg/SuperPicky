@@ -782,7 +782,12 @@ class FocusPointDetector:
             )
             if result.returncode != 0:
                 return None
-            data = json.loads(result.stdout)
+            
+            stdout = result.stdout or ""
+            if not stdout.strip():
+                return None
+                
+            data = json.loads(stdout)
             return data[0] if data else None
         except Exception:
             return None
